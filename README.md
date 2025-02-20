@@ -1,4 +1,4 @@
-# Koii Camping AI
+# Koii DeFI AI Assistant
 
 Here is a flowchart of how this task should work:
 ![Flowchart:](Screenshot%202025-01-30%20121842.png)
