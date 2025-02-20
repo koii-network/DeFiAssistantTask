@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeFi AI Assistant V0.0.5d</title>
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --secondary-color: #00cec9;
+            --background-dark: #2d3436;
+            --card-bg: rgba(44, 62, 80, 0.95);
+            --text-primary: #fff;
+            --text-secondary: #dfe6e9;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Arial', sans-serif;
+            background: url('https://images.unsplash.com/photo-1639322537228-f710d846310a');
+            background-size: 250%;
+            background-position: center;
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(26, 32, 44, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(108, 92, 231, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(108, 92, 231, 0.3);
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background: var(--primary-color);
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background: var(--card-bg);
+            margin-right: auto;
+            position: relative;
+            border-left: 3px solid var(--secondary-color);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+        }
+
+        #send-button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            background: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        #send-button:hover {
+            background: #5549c0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .loading::after {
+            content: '💫';
+            animation: spin 1s infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Dashboard Styles */
+        .dashboard {
+            margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+
+        .dashboard-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(108, 92, 231, 0.3);
+        }
+
+        .dashboard-card h3 {
+            color: var(--secondary-color);
+            margin-top: 0;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+
+        .price-change {
+            font-size: 1.5em;
+            margin: 10px 0;
+        }
+
+        .positive {
+            color: #00b894;
+        }
+
+        .negative {
+            color: #d63031;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 150px;
+            margin-top: 15px;
+        }
+
+        .token-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .token-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gas-meter {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .gas-level {
+            height: 100%;
+            background: var(--secondary-color);
+            border-radius: 5px;
+            width: 70%;
+        }
+
+        .feedback-buttons {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .feedback-button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .feedback-button:hover {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+
+        .feedback-button[data-type="positive"] {
+            filter: drop-shadow(0 0 8px rgba(0, 255, 0, 0.3));
+        }
+
+        .feedback-button[data-type="positive"]:hover {
+            filter: drop-shadow(0 0 12px rgba(0, 255, 0, 0.5));
+        }
+
+        .feedback-button[data-type="negative"] {
+            filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.3));
+        }
+
+        .feedback-button[data-type="negative"]:hover {
+            filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.5));
+        }
+
+        .feedback-button.selected[data-type="positive"] {
+            filter: drop-shadow(0 0 25px rgba(0, 255, 0, 1));
+            transform: scale(1.8);
+            opacity: 1;
+            z-index: 2;
+        }
+
+        .feedback-button.selected[data-type="negative"] {
+            filter: drop-shadow(0 0 25px rgba(255, 0, 0, 1));
+            transform: scale(1.8);
+            opacity: 1;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💫 DeFi AI Assistant</h1>
+        <div class="chat-container" id="chat-container">
+            <div class="message bot-message">
+                Welcome to your DeFi assistant! I can help you with cryptocurrency trading, DeFi protocols, yield farming, and market analysis. How can I assist you today? 📈
+            </div>
+        </div>
+        <div class="loading" id="loading"></div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Ask about DeFi, crypto, or market analysis...">
+            <button id="send-button">Send 💫</button>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div class="dashboard">
+            <div class="dashboard-card">
+                <h3>Market Overview</h3>
+                <div>
+                    <div>BTC/USD</div>
+                    <div class="price-change positive">$43,567.89 (+2.4%)</div>
+                    <div>ETH/USD</div>
+                    <div class="price-change negative">$2,234.56 (-1.2%)</div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Gas Tracker</h3>
+                <div>
+                    <p>Current: 45 Gwei</p>
+                    <p>Average: 55 Gwei</p>
+                    <div class="gas-meter">
+                        <div class="gas-level"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Top DeFi Protocols</h3>
+                <ul class="token-list">
+                    <li><span>Uniswap</span> <span>$5.2B TVL</span></li>
+                    <li><span>Aave</span> <span>$3.8B TVL</span></li>
+                    <li><span>Curve</span> <span>$3.1B TVL</span></li>
+                </ul>
+            </div>
+
+            <div class="dashboard-card">
+                <h3>Your Portfolio</h3>
+                <ul class="token-list">
+                    <li><span>Total Value:</span> <span>$12,345</span></li>
+                    <li><span>24h Change:</span> <span class="positive">+3.2%</span></li>
+                    <li><span>Assets:</span> <span>5</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatContainer = document.getElementById('chat-container');
+            const userInput = document.getElementById('user-input');
+            const sendButton = document.getElementById('send-button');
+            const loadingIndicator = document.getElementById('loading');
+
+            function createFeedbackButtons(messageId) {
+                const feedbackDiv = document.createElement('div');
+                feedbackDiv.className = 'feedback-buttons';
+                
+                const thumbsUp = document.createElement('button');
+                thumbsUp.className = 'feedback-button';
+                thumbsUp.setAttribute('data-type', 'positive');
+                thumbsUp.innerHTML = '👍';
+                thumbsUp.onclick = () => submitFeedback(messageId, 'positive', thumbsUp, thumbsDown);
+
+                const thumbsDown = document.createElement('button');
+                thumbsDown.className = 'feedback-button';
+                thumbsDown.setAttribute('data-type', 'negative');
+                thumbsDown.innerHTML = '👎';
+                thumbsDown.onclick = () => submitFeedback(messageId, 'negative', thumbsDown, thumbsUp);
+
+                feedbackDiv.appendChild(thumbsUp);
+                feedbackDiv.appendChild(thumbsDown);
+                return feedbackDiv;
+            }
+
+            async function submitFeedback(messageId, feedback, selectedButton, otherButton) {
+                try {
+                    const response = await fetch(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/feedback`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ messageId, feedback })
+                    });
+
+                    if (response.ok) {
+                        // Visual feedback
+                        console.log("Feedback submitted successfully");
+                        selectedButton.classList.add('selected');
+                        otherButton.classList.remove('selected');
+                    }
+                } catch (error) {
+                    console.error('Error submitting feedback:', error);
+                }
+            }
+
+            function addMessage(message, isUser = false, messageId = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+                messageDiv.textContent = message;
+                
+                if (!isUser) {
+                    console.log("Adding feedback buttons for messageId:", messageId);
+                    const feedbackButtons = createFeedbackButtons(messageId);
+                    messageDiv.appendChild(feedbackButtons);
+                }
+                
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            async function sendMessage() {
+                const message = userInput.value.trim();
+                if (!message) return;
+
+                // Add user message to chat
+                addMessage(message, true);
+                userInput.value = '';
+                loadingIndicator.style.display = 'block';
+
+                try {
+                    const response = await fetch(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/chat`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message })
+                    });
+
+                    const data = await response.json();
+                    loadingIndicator.style.display = 'none';
+
+                    if (response.ok) {
+                        console.log("DATA: ", data);
+                        console.log("DATA RESPONSE: ", data.response);
+                        addMessage(data.response, false, data.messageId);
+                    } else {
+                        addMessage('Sorry, I encountered an error. Please try again.', false);
+                    }
+                } catch (error) {
+                    loadingIndicator.style.display = 'none';
+                    addMessage('Sorry, I encountered an error. Please try again.', false);
+                    console.error('Error:', error);
+                }
+            }
+
+            // Event listeners
+            sendButton.addEventListener('click', sendMessage);
+            userInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }); 
+    </script>
+</body>
+</html>

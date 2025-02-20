@@ -30,6 +30,7 @@
     "dotenv": "^16.3.0",
     "dotenv-webpack": "^8.1.0",
     "nodemon": "^3.1.7",
+    "openai": "^4.84.1",
     "tail": "^2.2.6"
   },
   "devDependencies": {

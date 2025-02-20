@@ -1,10 +1,28 @@
-# Koii Task Template
+# Koii Camping AI
+
+Here is a flowchart of how this task should work:
+![Flowchart:](Screenshot%202025-01-30%20121842.png)
+
+We made this repo during a Webinar. 
+
+    // YOU'LL NEED TO FIX THESE LINES IF YOU CLONE THIS REPO
+
+    Line 22 in 5-routes.js:
+    res.sendFile('index.html', { root: 'D:/_Koii_Projects/CampingAI/0-0-2/src/task/app' });
+
+    You'll also need to add your OpenAI API key to the .env file.
+    example:
+    OPENAI_API_KEY="sk-proj-IKW4p9KUj32CkYLMakfMgBbkyThn-re1aKn9pJUoMA"
+
+
+Find the endpoint at: http://localhost:30017/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/question
+
 
 ## Koii Task Development: Step-by-Step Guide
 
 This guide will help you create, test, and deploy a task on the Koii Network. It's designed for beginners and experts alike. Read through the steps below for a simple, easy-to-follow guide.
 
-_Want to dive deeper?_ Check out our tutorialized [Development Guide](https://github.com/koii-network/ezsandbox).
+*Want to dive deeper?* Check out our tutorialized [Development Guide](https://github.com/koii-network/ezsandbox).
 
 ## 1. Prerequisites
 
@@ -12,21 +30,19 @@ Before you begin, make sure you have the following:
 
 ### Tools to Install
 
-- **Node.js** _(version >=20.0.0, LTS Versions only)_: [Download here](https://nodejs.org)
-- _(Optional, for Python and Docker tasks only)_ **Docker Compose**: [Install here](https://docs.docker.com/get-started/08_using_compose/)
+- **Node.js** *(version >=20.0.0, LTS Versions only)*: [Download here](https://nodejs.org)
+- *(Optional, for Python and Docker tasks only)* **Docker Compose**: [Install here](https://docs.docker.com/get-started/08_using_compose/)
 
 ## 2. Set Up Your Task
 
 Once you have the required tools, input the following commands:
 
 1. Clone the Koii Task Template:
-
    ```sh
    git clone https://github.com/koii-network/task-template.git
    ```
 
 2. Install dependencies:
-
    ```sh
    yarn install
    ```
@@ -80,7 +96,6 @@ This command simulates the entire task flow, including performing the task, subm
 Before deploying your task to a production environment, test it in the Desktop Node:
 
 1. Build your executable:
-
    ```sh
    yarn webpack
    ```
@@ -97,19 +112,17 @@ Before deploying your task to a production environment, test it in the Desktop N
 
 ## 6. Production Deployment
 
-1. Fill in your `config-task.yml`:
+1. Fill in your `config-task.yml`: 
    The default `config-task.yml` file has placeholders to fill in before deploying your task. This file configures your task with a name, an image, and other settings. Check the comments in the `config-task.yml` file for more information. Set the environment parameter in your config to "PRODUCTION".
 
-2. Run the Create Task CLI:
+2. Run the Create Task CLI: 
    The Create-Task-CLI is a command-line tool that helps you easily deploy your task so the Koii Community can host it on their nodes. To get started, copy the command below to your CLI:
-
    ```sh
    npx @_koii/create-task-cli@latest
    ```
-
    The Create-Task-CLI will ask for a series of inputs to help you deploy your task.
 
-   _Note_: You may be asked for specific paths to your wallets. If you don't have a wallet yet, create one using the [Desktop Node](https://koii.network/node) or the [Koii CLI](https://docs.koii.network/develop/command-line-tool/koii-cli/install-cli).
+   *Note*: You may be asked for specific paths to your wallets. If you don't have a wallet yet, create one using the [Desktop Node](https://koii.network/node) or the [Koii CLI](https://docs.koii.network/develop/command-line-tool/koii-cli/install-cli).
 
    If the tool isn't able to grab these automatically, the OS-specific paths are:
 
@@ -121,7 +134,7 @@ Before deploying your task to a production environment, test it in the Desktop N
 
    Once done, it will generate a task-ID, which will look something like "<BXbYKFdXZhQgEaMFbeShaisQBYG1FD4MiSf9gg4n6mVn>". [Add this task to your node as you did with the EZ Sandbox Task.](https://github.com/koii-network/ezsandbox/tree/main/Get%20Started%20-%20Quick%20Intro)
 
-_Congrats! You've done it! You're now officially a blockchain developer with a decentralized app/service live in Web3. We couldn't be more proud!_
+*Congrats! You've done it! You're now officially a blockchain developer with a decentralized app/service live in Web3. We couldn't be more proud!*
 
 # More Info
 
