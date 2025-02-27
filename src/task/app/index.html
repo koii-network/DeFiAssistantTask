@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeFi AI Assistant V0.0.5d</title>
+    <title>DeFi AI Assistant V0.0.6</title>
     <style>
         :root {
             --primary-color: #6c5ce7;
@@ -175,17 +175,19 @@
         }
 
         .gas-meter {
-            height: 10px;
+            height: 6px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            margin-top: 10px;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
         }
 
         .gas-level {
             height: 100%;
             background: var(--secondary-color);
-            border-radius: 5px;
-            width: 70%;
+            border-radius: 3px;
+            width: 0;
+            transition: width 0.3s ease;
         }
 
         .feedback-buttons {
@@ -244,6 +246,36 @@
             opacity: 1;
             z-index: 2;
         }
+
+        .refresh-button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            padding: 5px;
+            margin-left: 10px;
+            transition: transform 0.3s ease;
+            color: var(--secondary-color);
+        }
+
+        .refresh-button:hover {
+            transform: rotate(180deg);
+        }
+
+        .refresh-button.spinning {
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .network-gas h4 {
+            color: var(--secondary-color);
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
     </style>
 </head>
 <body>
@@ -263,41 +295,55 @@
         <!-- Dashboard Section -->
         <div class="dashboard">
             <div class="dashboard-card">
-                <h3>Market Overview</h3>
-                <div>
-                    <div>BTC/USD</div>
-                    <div class="price-change positive">$43,567.89 (+2.4%)</div>
-                    <div>ETH/USD</div>
-                    <div class="price-change negative">$2,234.56 (-1.2%)</div>
+                <h3>Market Overview <button id="refresh-market" class="refresh-button">🔄</button></h3>
+                <div id="market-data">
+                    <div class="token-selector">
+                        <select id="token-dropdown" style="background: var(--card-bg); color: var(--text-primary); padding: 8px; border: 1px solid var(--secondary-color); border-radius: 5px; margin-bottom: 10px; width: 100%; cursor: pointer;">
+                            <option value="bitcoin">Bitcoin (BTC)</option>
+                            <option value="ethereum">Ethereum (ETH)</option>
+                            <option value="binancecoin">BNB</option>
+                            <option value="solana">Solana (SOL)</option>
+                            <option value="ripple">XRP</option>
+                            <option value="cardano">Cardano (ADA)</option>
+                            <option value="avalanche-2">Avalanche (AVAX)</option>
+                            <option value="polkadot">Polkadot (DOT)</option>
+                            <option value="chainlink">Chainlink (LINK)</option>
+                            <option value="matic-network">Polygon (MATIC)</option>
+                        </select>
+                        <button id="add-token" style="background: var(--primary-color); color: var(--text-primary); border: none; border-radius: 5px; padding: 8px 10px; cursor: pointer; margin-bottom: 10px; width: 100%; transition: background 0.3s;">Add Token</button>
+                    </div>
+                    <div id="tracked-tokens"></div>
                 </div>
             </div>
 
             <div class="dashboard-card">
-                <h3>Gas Tracker</h3>
-                <div>
-                    <p>Current: 45 Gwei</p>
-                    <p>Average: 55 Gwei</p>
-                    <div class="gas-meter">
-                        <div class="gas-level"></div>
+                <h3>Gas Tracker <button id="refresh-gas" class="refresh-button">🔄</button></h3>
+                <div id="gas-data">
+                    <div class="network-gas">
+                        <h4>Ethereum</h4>
+                        <p>Low: <span id="eth-low-gas">Loading...</span></p>
+                        <p>Average: <span id="eth-avg-gas">Loading...</span></p>
+                        <p>High: <span id="eth-high-gas">Loading...</span></p>
+                        <div class="gas-meter">
+                            <div class="gas-level" id="eth-gas-level"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="dashboard-card">
-                <h3>Top DeFi Protocols</h3>
-                <ul class="token-list">
-                    <li><span>Uniswap</span> <span>$5.2B TVL</span></li>
-                    <li><span>Aave</span> <span>$3.8B TVL</span></li>
-                    <li><span>Curve</span> <span>$3.1B TVL</span></li>
+                <h3>Top Performing Tokens <button id="refresh-tokens" class="refresh-button">🔄</button></h3>
+                <ul class="token-list" id="top-tokens-list">
+                    <li><span>Loading tokens...</span></li>
                 </ul>
             </div>
 
             <div class="dashboard-card">
                 <h3>Your Portfolio</h3>
                 <ul class="token-list">
-                    <li><span>Total Value:</span> <span>$12,345</span></li>
-                    <li><span>24h Change:</span> <span class="positive">+3.2%</span></li>
-                    <li><span>Assets:</span> <span>5</span></li>
+                    <li><span>Total Value:</span> <span>$15,652</span></li>
+                    <li><span>24h Change:</span> <span class="positive">+9.6%</span></li>
+                    <li><span>Assets:</span> <span>8</span></li>
                 </ul>
             </div>
         </div>
@@ -308,6 +354,24 @@
             const userInput = document.getElementById('user-input');
             const sendButton = document.getElementById('send-button');
             const loadingIndicator = document.getElementById('loading');
+
+            // Market data elements
+            const refreshButton = document.getElementById('refresh-market');
+            const tokenDropdown = document.getElementById('token-dropdown');
+            const addTokenButton = document.getElementById('add-token');
+            const trackedTokensDiv = document.getElementById('tracked-tokens');
+            const refreshTokensButton = document.getElementById('refresh-tokens');
+            const topTokensList = document.getElementById('top-tokens-list');
+
+            // Gas tracking elements
+            const refreshGasButton = document.getElementById('refresh-gas');
+            const ethLowGas = document.getElementById('eth-low-gas');
+            const ethAvgGas = document.getElementById('eth-avg-gas');
+            const ethHighGas = document.getElementById('eth-high-gas');
+            const ethGasLevel = document.getElementById('eth-gas-level');
+
+            // Store tracked tokens
+            let trackedTokens = new Set(['bitcoin', 'ethereum']);
 
             function createFeedbackButtons(messageId) {
                 const feedbackDiv = document.createElement('div');
@@ -401,6 +465,237 @@
                 }
             }
 
+            function createTokenElement(tokenId, data) {
+                const tokenDiv = document.createElement('div');
+                tokenDiv.style.marginBottom = '15px';
+                tokenDiv.style.position = 'relative';
+                
+                const price = data[tokenId].usd;
+                const change = data[tokenId].usd_24h_change;
+                
+                // Get token name from dropdown
+                const tokenOption = Array.from(tokenDropdown.options).find(opt => opt.value === tokenId);
+                const tokenName = tokenOption ? tokenOption.text : tokenId.charAt(0).toUpperCase() + tokenId.slice(1);
+                
+                tokenDiv.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>${tokenName}</div>
+                        <button class="remove-token" style="background: none; border: none; color: var(--secondary-color); cursor: pointer; font-size: 1.2em; padding: 0 5px;">×</button>
+                    </div>
+                    <div class="price-change ${change >= 0 ? 'positive' : 'negative'}">
+                        $${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        (${change.toFixed(2)}%)
+                    </div>
+                `;
+
+                // Add remove button handler
+                tokenDiv.querySelector('.remove-token').addEventListener('click', () => {
+                    trackedTokens.delete(tokenId);
+                    tokenDiv.remove();
+                    localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                });
+
+                return tokenDiv;
+            }
+
+            async function fetchMarketData() {
+                try {
+                    if (trackedTokens.size === 0) {
+                        trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">No tokens added. Select a token from the dropdown above.</div>';
+                        return;
+                    }
+
+                    refreshButton.classList.add('spinning');
+                    const response = await fetch(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/market-prices?tokens=${Array.from(trackedTokens).join(',')}`);
+                    const data = await response.json();
+
+                    if (!data || typeof data !== 'object') {
+                        throw new Error('Invalid response data');
+                    }
+
+                    // Clear and update tracked tokens
+                    trackedTokensDiv.innerHTML = '';
+                    let hasValidTokens = false;
+
+                    for (const tokenId of trackedTokens) {
+                        if (data[tokenId] && data[tokenId].usd !== undefined) {
+                            trackedTokensDiv.appendChild(createTokenElement(tokenId, data));
+                            hasValidTokens = true;
+                        } else {
+                            console.error(`Invalid or missing data for token: ${tokenId}`);
+                            trackedTokens.delete(tokenId); // Remove invalid token
+                        }
+                    }
+
+                    if (!hasValidTokens) {
+                        trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">Error loading token data. Please try again.</div>';
+                    }
+
+                    // Update localStorage with valid tokens
+                    localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                } catch (error) {
+                    console.error('Error fetching market data:', error);
+                    trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">Error loading prices. Please try again.</div>';
+                } finally {
+                    refreshButton.classList.remove('spinning');
+                }
+            }
+
+            async function fetchGasData() {
+                try {
+                    refreshGasButton.classList.add('spinning');
+
+                    // Fetch Ethereum gas data using public API
+                    const ethGasEndpoints = [
+                        'https://api.blocknative.com/gasprices/blockprices',  // BlockNative public endpoint
+                        'https://gas.api.0x.org/source/median',  // 0x Protocol public endpoint
+                        'https://beaconcha.in/api/v1/execution/gasnow'  // Beaconcha.in public endpoint
+                    ];
+
+                    let ethData = null;
+                    for (const endpoint of ethGasEndpoints) {
+                        try {
+                            const ethResponse = await fetch(endpoint);
+                            ethData = await ethResponse.json();
+                            if (ethData) break;
+                        } catch (err) {
+                            console.log(`Failed to fetch ETH gas from ${endpoint}:`, err);
+                            continue;
+                        }
+                    }
+
+                    if (ethData) {
+                        let lowGas, avgGas, highGas;
+                        
+                        // Parse different API response formats
+                        if (ethData.blockPrices) {  // BlockNative format
+                            lowGas = ethData.blockPrices[0].estimatedPrices[0].price;
+                            avgGas = ethData.blockPrices[0].estimatedPrices[1].price;
+                            highGas = ethData.blockPrices[0].estimatedPrices[2].price;
+                        } else if (ethData.fast) {  // Beaconcha.in format
+                            lowGas = ethData.standard;
+                            avgGas = ethData.fast;
+                            highGas = ethData.rapid;
+                        } else if (ethData.median) {  // 0x Protocol format
+                            lowGas = ethData.median.standard;
+                            avgGas = ethData.median.fast;
+                            highGas = ethData.median.instant;
+                        }
+
+                        // Format gas prices with 3 decimal places
+                        ethLowGas.textContent = `${lowGas.toFixed(3)} Gwei`;
+                        ethAvgGas.textContent = `${avgGas.toFixed(3)} Gwei`;
+                        ethHighGas.textContent = `${highGas.toFixed(3)} Gwei`;
+                        
+                        // Calculate percentage for gas level visualization using average relative to high
+                        const ethPercentage = (avgGas / highGas) * 100;
+                        ethGasLevel.style.width = `${Math.min(ethPercentage, 100)}%`;
+                        ethGasLevel.style.background = getGasColor(ethPercentage);
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching gas data:', error);
+                    if (error.message.includes('Solana')) {
+                        solLowGas.textContent = 'Error loading';
+                        solAvgGas.textContent = 'Error loading';
+                        solHighGas.textContent = 'Error loading';
+                    } else {
+                        ethLowGas.textContent = 'Error loading';
+                        ethAvgGas.textContent = 'Error loading';
+                        ethHighGas.textContent = 'Error loading';
+                        solLowGas.textContent = 'Error loading';
+                        solAvgGas.textContent = 'Error loading';
+                        solHighGas.textContent = 'Error loading';
+                    }
+                } finally {
+                    refreshGasButton.classList.remove('spinning');
+                }
+            }
+
+            function getGasColor(percentage) {
+                // Color gradient from green to red based on gas price percentage
+                if (percentage <= 30) return '#00b894';  // Low gas - green
+                if (percentage <= 70) return '#fdcb6e';  // Medium gas - yellow
+                return '#d63031';  // High gas - red
+            }
+
+            async function fetchTopTokens() {
+                try {
+                    refreshTokensButton.classList.add('spinning');
+                    const response = await fetch('/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/top-tokens');
+                    const tokens = await response.json();
+
+                    // Clear the list
+                    topTokensList.innerHTML = '';
+
+                    // Format numbers for display
+                    const formatPrice = (price) => {
+                        if (price >= 1) return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        return price.toFixed(8); // Show more decimals for small prices
+                    };
+
+                    const formatFDV = (fdv) => {
+                        if (!fdv) return 'N/A';
+                        if (fdv >= 1e9) return `$${(fdv / 1e9).toFixed(2)}B`;
+                        if (fdv >= 1e6) return `$${(fdv / 1e6).toFixed(2)}M`;
+                        return `$${fdv.toLocaleString()}`;
+                    };
+
+                    // Add each token to the list
+                    tokens.forEach(token => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-weight: bold;">${token.symbol}</span>
+                                <span style="font-size: 0.8em; opacity: 0.8;">FDV: ${formatFDV(token.fdv)}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span>$${formatPrice(token.price)}</span>
+                                <span class="${token.change_24h >= 0 ? 'positive' : 'negative'}" style="display: block; font-size: 0.9em;">
+                                    ${token.change_24h >= 0 ? '↑' : '↓'} ${Math.abs(token.change_24h).toFixed(2)}%
+                                </span>
+                            </div>
+                        `;
+                        topTokensList.appendChild(li);
+                    });
+                } catch (error) {
+                    console.error('Error fetching top tokens:', error);
+                    topTokensList.innerHTML = '<li><span>Error loading tokens</span></li>';
+                } finally {
+                    refreshTokensButton.classList.remove('spinning');
+                }
+            }
+
+            // Load tracked tokens from localStorage
+            const savedTokens = localStorage.getItem('trackedTokens');
+            if (savedTokens) {
+                trackedTokens = new Set(JSON.parse(savedTokens));
+            }
+
+            // Add token button handler
+            addTokenButton.addEventListener('click', () => {
+                const selectedToken = tokenDropdown.value;
+                if (!trackedTokens.has(selectedToken)) {
+                    trackedTokens.add(selectedToken);
+                    localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                    fetchMarketData();
+                }
+            });
+
+            // Fetch initial market data
+            fetchMarketData();
+
+            // Fetch initial gas data
+            fetchGasData();
+
+            // Fetch initial top tokens data
+            fetchTopTokens();
+
+            // Add refresh button click handler
+            refreshButton.addEventListener('click', fetchMarketData);
+            refreshGasButton.addEventListener('click', fetchGasData);
+            refreshTokensButton.addEventListener('click', fetchTopTokens);
+
             // Event listeners
             sendButton.addEventListener('click', sendMessage);
             userInput.addEventListener('keypress', (e) => {
@@ -412,3 +707,5 @@
     </script>
 </body>
 </html>
+
+

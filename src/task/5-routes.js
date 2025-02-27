@@ -160,4 +160,50 @@ export async function routes() {
       res.status(500).json({ error: 'Failed to process chat message' });
     }
   });
+
+  // Endpoint to fetch top performing tokens
+  app.get("/api/top-tokens", async (_req, res) => {
+    try {
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?' +
+        'vs_currency=usd&' +
+        'order=price_change_percentage_24h_desc&' +  // Sort by 24h performance
+        'per_page=5&' +  // Get top 5 tokens
+        'page=1&' +
+        'sparkline=false&' +
+        'price_change_percentage=24h&' +
+        'locale=en'
+      );
+      
+      const data = await response.json();
+      
+      // Format the data we need
+      const formattedData = data.map(token => ({
+        symbol: token.symbol.toUpperCase(),
+        price: token.current_price,
+        change_24h: token.price_change_percentage_24h,
+        fdv: token.fully_diluted_valuation
+      }));
+      
+      res.json(formattedData);
+    } catch (error) {
+      console.error('Error fetching top tokens:', error);
+      res.status(500).json({ error: 'Failed to fetch top tokens' });
+    }
+  });
+
+  // Endpoint to fetch token prices for market overview
+  app.get("/api/market-prices", async (req, res) => {
+    try {
+      const tokens = req.query.tokens || 'bitcoin,ethereum'; // Default to BTC and ETH
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${tokens}&vs_currencies=usd&include_24hr_change=true`
+      );
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error('Error fetching market prices:', error);
+      res.status(500).json({ error: 'Failed to fetch market prices' });
+    }
+  });
 }
