@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeFi AI Assistant V0.0.6</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/koii-network/DeFiAssistantTask/refs/heads/main/src/assets/favicon.png">
     <style>
         :root {
             --primary-color: #6c5ce7;
@@ -18,8 +19,8 @@
             margin: 0;
             padding: 20px;
             font-family: 'Arial', sans-serif;
-            background: url('https://images.unsplash.com/photo-1639322537228-f710d846310a');
-            background-size: 250%;
+            background: url('https://raw.githubusercontent.com/koii-network/DeFiAssistantTask/1893e7950fa30cfb95ca4225ca789307df69365b/src/assets/background.svg');
+            background-size: cover;
             background-position: center;
             background-attachment: fixed;
             color: var(--text-primary);
@@ -266,21 +267,52 @@
             animation: spin 1s infinite linear;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
         .network-gas h4 {
             color: var(--secondary-color);
             margin: 0 0 10px 0;
             font-size: 1.1em;
         }
+
+        .logo-image {
+            height: 1.5em;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        #token-dropdown {
+            position: relative;
+            appearance: none;
+        }
+
+        #token-dropdown option {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            padding: 8px;
+        }
+
+        #token-dropdown:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.2);
+        }
+
+        .token-selector {
+            position: relative;
+        }
+
+        .token-selector::after {
+            content: '▼';
+            position: absolute;
+            right: 10px;
+            top: 8px;
+            color: var(--secondary-color);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>💫 DeFi AI Assistant</h1>
+        <h1><img src="https://raw.githubusercontent.com/koii-network/DeFiAssistantTask/1893e7950fa30cfb95ca4225ca789307df69365b/src/assets/logo.svg" alt="DeFi Assistant Logo" class="logo-image">DeFi AI Assistant</h1>
         <div class="chat-container" id="chat-container">
             <div class="message bot-message">
                 Welcome to your DeFi assistant! I can help you with cryptocurrency trading, DeFi protocols, yield farming, and market analysis. How can I assist you today? 📈
@@ -295,20 +327,15 @@
         <!-- Dashboard Section -->
         <div class="dashboard">
             <div class="dashboard-card">
-                <h3>Market Overview <button id="refresh-market" class="refresh-button">🔄</button></h3>
+                <h3>My Assets <button id="refresh-market" class="refresh-button">🔄</button></h3>
                 <div id="market-data">
                     <div class="token-selector">
+                        <div style="margin-bottom: 10px;">
+                            <input type="text" id="token-search" placeholder="Search for any token..." style="width: 100%; padding: 8px; background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--secondary-color); border-radius: 5px; margin-bottom: 5px;">
+                            <div id="search-results" style="position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--secondary-color); border-radius: 5px; display: none; z-index: 1000;"></div>
+                        </div>
                         <select id="token-dropdown" style="background: var(--card-bg); color: var(--text-primary); padding: 8px; border: 1px solid var(--secondary-color); border-radius: 5px; margin-bottom: 10px; width: 100%; cursor: pointer;">
-                            <option value="bitcoin">Bitcoin (BTC)</option>
-                            <option value="ethereum">Ethereum (ETH)</option>
-                            <option value="binancecoin">BNB</option>
-                            <option value="solana">Solana (SOL)</option>
-                            <option value="ripple">XRP</option>
-                            <option value="cardano">Cardano (ADA)</option>
-                            <option value="avalanche-2">Avalanche (AVAX)</option>
-                            <option value="polkadot">Polkadot (DOT)</option>
-                            <option value="chainlink">Chainlink (LINK)</option>
-                            <option value="matic-network">Polygon (MATIC)</option>
+                            <option value="">Select from top 100 tokens...</option>
                         </select>
                         <button id="add-token" style="background: var(--primary-color); color: var(--text-primary); border: none; border-radius: 5px; padding: 8px 10px; cursor: pointer; margin-bottom: 10px; width: 100%; transition: background 0.3s;">Add Token</button>
                     </div>
@@ -321,9 +348,9 @@
                 <div id="gas-data">
                     <div class="network-gas">
                         <h4>Ethereum</h4>
-                        <p>Low: <span id="eth-low-gas">Loading...</span></p>
+                        <p>High: <span id="eth-low-gas">Loading...</span></p>
                         <p>Average: <span id="eth-avg-gas">Loading...</span></p>
-                        <p>High: <span id="eth-high-gas">Loading...</span></p>
+                        <p>Low: <span id="eth-high-gas">Loading...</span></p>
                         <div class="gas-meter">
                             <div class="gas-level" id="eth-gas-level"></div>
                         </div>
@@ -355,92 +382,26 @@
             const sendButton = document.getElementById('send-button');
             const loadingIndicator = document.getElementById('loading');
 
-            // Market data elements
-            const refreshButton = document.getElementById('refresh-market');
-            const tokenDropdown = document.getElementById('token-dropdown');
-            const addTokenButton = document.getElementById('add-token');
-            const trackedTokensDiv = document.getElementById('tracked-tokens');
-            const refreshTokensButton = document.getElementById('refresh-tokens');
-            const topTokensList = document.getElementById('top-tokens-list');
-
-            // Gas tracking elements
-            const refreshGasButton = document.getElementById('refresh-gas');
-            const ethLowGas = document.getElementById('eth-low-gas');
-            const ethAvgGas = document.getElementById('eth-avg-gas');
-            const ethHighGas = document.getElementById('eth-high-gas');
-            const ethGasLevel = document.getElementById('eth-gas-level');
-
-            // Store tracked tokens
-            let trackedTokens = new Set(['bitcoin', 'ethereum']);
-
-            function createFeedbackButtons(messageId) {
-                const feedbackDiv = document.createElement('div');
-                feedbackDiv.className = 'feedback-buttons';
-                
-                const thumbsUp = document.createElement('button');
-                thumbsUp.className = 'feedback-button';
-                thumbsUp.setAttribute('data-type', 'positive');
-                thumbsUp.innerHTML = '👍';
-                thumbsUp.onclick = () => submitFeedback(messageId, 'positive', thumbsUp, thumbsDown);
-
-                const thumbsDown = document.createElement('button');
-                thumbsDown.className = 'feedback-button';
-                thumbsDown.setAttribute('data-type', 'negative');
-                thumbsDown.innerHTML = '👎';
-                thumbsDown.onclick = () => submitFeedback(messageId, 'negative', thumbsDown, thumbsUp);
-
-                feedbackDiv.appendChild(thumbsUp);
-                feedbackDiv.appendChild(thumbsDown);
-                return feedbackDiv;
-            }
-
-            async function submitFeedback(messageId, feedback, selectedButton, otherButton) {
-                try {
-                    const response = await fetch(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/feedback`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ messageId, feedback })
-                    });
-
-                    if (response.ok) {
-                        // Visual feedback
-                        console.log("Feedback submitted successfully");
-                        selectedButton.classList.add('selected');
-                        otherButton.classList.remove('selected');
-                    }
-                } catch (error) {
-                    console.error('Error submitting feedback:', error);
-                }
-            }
-
-            function addMessage(message, isUser = false, messageId = null) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
-                messageDiv.textContent = message;
-                
-                if (!isUser) {
-                    console.log("Adding feedback buttons for messageId:", messageId);
-                    const feedbackButtons = createFeedbackButtons(messageId);
-                    messageDiv.appendChild(feedbackButtons);
-                }
-                
-                chatContainer.appendChild(messageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-
+            // Chat message handling
             async function sendMessage() {
                 const message = userInput.value.trim();
                 if (!message) return;
 
                 // Add user message to chat
-                addMessage(message, true);
+                const userMessageDiv = document.createElement('div');
+                userMessageDiv.className = 'message user-message';
+                userMessageDiv.textContent = message;
+                chatContainer.appendChild(userMessageDiv);
+
+                // Clear input and scroll to bottom
                 userInput.value = '';
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+                // Show loading indicator
                 loadingIndicator.style.display = 'block';
 
                 try {
-                    const response = await fetch(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/chat`, {
+                    const response = await fetch('/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/chat', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -449,19 +410,237 @@
                     });
 
                     const data = await response.json();
-                    loadingIndicator.style.display = 'none';
 
-                    if (response.ok) {
-                        console.log("DATA: ", data);
-                        console.log("DATA RESPONSE: ", data.response);
-                        addMessage(data.response, false, data.messageId);
-                    } else {
-                        addMessage('Sorry, I encountered an error. Please try again.', false);
-                    }
+                    // Add bot response to chat
+                    const botMessageDiv = document.createElement('div');
+                    botMessageDiv.className = 'message bot-message';
+                    botMessageDiv.textContent = data.response;
+
+                    // Add feedback buttons
+                    const feedbackButtons = document.createElement('div');
+                    feedbackButtons.className = 'feedback-buttons';
+                    feedbackButtons.innerHTML = `
+                        <button class="feedback-button" data-type="positive" data-message-id="${data.messageId}">👍</button>
+                        <button class="feedback-button" data-type="negative" data-message-id="${data.messageId}">👎</button>
+                    `;
+
+                    // Add feedback button handlers
+                    feedbackButtons.querySelectorAll('.feedback-button').forEach(button => {
+                        button.addEventListener('click', async function() {
+                            const messageId = this.dataset.messageId;
+                            const feedbackType = this.dataset.type;
+                            
+                            // Remove previously selected class from both buttons
+                            this.parentElement.querySelectorAll('.feedback-button').forEach(btn => {
+                                btn.classList.remove('selected');
+                            });
+                            
+                            // Add selected class to clicked button
+                            this.classList.add('selected');
+
+                            try {
+                                await fetch('/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/feedback', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                        messageId,
+                                        feedback: feedbackType
+                                    })
+                                });
+                            } catch (error) {
+                                console.error('Error sending feedback:', error);
+                            }
+                        });
+                    });
+
+                    botMessageDiv.appendChild(feedbackButtons);
+                    chatContainer.appendChild(botMessageDiv);
                 } catch (error) {
+                    console.error('Error sending message:', error);
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'message bot-message';
+                    errorDiv.textContent = 'Sorry, there was an error processing your message. Please try again.';
+                    chatContainer.appendChild(errorDiv);
+                } finally {
                     loadingIndicator.style.display = 'none';
-                    addMessage('Sorry, I encountered an error. Please try again.', false);
-                    console.error('Error:', error);
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            }
+
+            // Utility function for debouncing
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Market data elements
+            const refreshButton = document.getElementById('refresh-market');
+            const tokenDropdown = document.getElementById('token-dropdown');
+            const addTokenButton = document.getElementById('add-token');
+            const trackedTokensDiv = document.getElementById('tracked-tokens');
+            const refreshTokensButton = document.getElementById('refresh-tokens');
+            const topTokensList = document.getElementById('top-tokens-list');
+
+            // Initially disable add token button
+            addTokenButton.disabled = true;
+            addTokenButton.style.opacity = '0.5';
+
+            // Token dropdown handling
+            async function loadAvailableTokens() {
+                if (hasLoadedTokens) return;
+                
+                try {
+                    tokenDropdown.innerHTML = '<option value="">Loading tokens...</option>';
+                    const response = await fetchWithRetry('/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/available-tokens');
+                    
+                    if (!Array.isArray(response)) {
+                        throw new Error('Invalid response format');
+                    }
+
+                    // Sort tokens by market cap rank
+                    const sortedTokens = response.sort((a, b) => {
+                        if (!a.market_cap_rank) return 1;
+                        if (!b.market_cap_rank) return -1;
+                        return a.market_cap_rank - b.market_cap_rank;
+                    });
+
+                    // Reset dropdown
+                    tokenDropdown.innerHTML = '<option value="">Select a token...</option>';
+
+                    // Add token options
+                    sortedTokens.forEach(token => {
+                        const option = document.createElement('option');
+                        option.value = token.id;
+                        option.textContent = `${token.name} (${token.symbol})`;
+                        tokenDropdown.appendChild(option);
+                    });
+
+                    hasLoadedTokens = true;
+                } catch (error) {
+                    console.error('Error loading available tokens:', error);
+                    tokenDropdown.innerHTML = '<option value="">Error loading tokens. Click to retry...</option>';
+                    hasLoadedTokens = false;
+                }
+            }
+
+            // Add token dropdown event listeners
+            tokenDropdown.addEventListener('click', loadAvailableTokens);
+            tokenDropdown.addEventListener('change', () => {
+                const selectedToken = tokenDropdown.value;
+                if (selectedToken && !trackedTokens.has(selectedToken)) {
+                    addTokenButton.disabled = false;
+                    addTokenButton.style.opacity = '1';
+                } else {
+                    addTokenButton.disabled = true;
+                    addTokenButton.style.opacity = '0.5';
+                }
+            });
+
+            // Add token button handler
+            addTokenButton.addEventListener('click', () => {
+                const selectedToken = tokenDropdown.value;
+                if (selectedToken && !trackedTokens.has(selectedToken)) {
+                    trackedTokens.add(selectedToken);
+                    localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                    fetchMarketData();
+                    // Reset dropdown and button state
+                    tokenDropdown.value = '';
+                    addTokenButton.disabled = true;
+                    addTokenButton.style.opacity = '0.5';
+                }
+            });
+
+            // State variables
+            let isRefreshing = false;
+            let hasLoadedTokens = false;
+
+            // Gas tracking elements
+            const refreshGasButton = document.getElementById('refresh-gas');
+            const ethLowGas = document.getElementById('eth-low-gas');
+            const ethAvgGas = document.getElementById('eth-avg-gas');
+            const ethHighGas = document.getElementById('eth-high-gas');
+            const ethGasLevel = document.getElementById('eth-gas-level');
+
+            // Store tracked tokens and their data
+            let trackedTokens = new Set(['bitcoin', 'ethereum']);
+            let tokenDataCache = {
+                lastUpdate: null,
+                data: {},
+                storeData: function(newData) {
+                    this.data = { ...this.data, ...newData };
+                    this.lastUpdate = Date.now();
+                    // Store in localStorage
+                    localStorage.setItem('tokenDataCache', JSON.stringify({
+                        lastUpdate: this.lastUpdate,
+                        data: this.data
+                    }));
+                },
+                getData: function(tokenId) {
+                    return this.data[tokenId];
+                },
+                hasValidData: function(tokenId) {
+                    return this.data[tokenId] && this.data[tokenId].usd !== undefined;
+                },
+                loadFromStorage: function() {
+                    const cached = localStorage.getItem('tokenDataCache');
+                    if (cached) {
+                        const parsed = JSON.parse(cached);
+                        this.data = parsed.data || {};
+                        this.lastUpdate = parsed.lastUpdate;
+                    }
+                }
+            };
+
+            // Load cached data on startup
+            tokenDataCache.loadFromStorage();
+
+            // Add rate limit handling utilities
+            const rateLimitState = {
+                isRateLimited: false,
+                retryCount: 0,
+                maxRetries: 3,
+                baseDelay: 5000, // 5 seconds
+            };
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async function fetchWithRetry(url, retryCount = 0) {
+                try {
+                    const response = await fetch(url);
+                    
+                    // Check for rate limit response
+                    if (response.status === 429) {
+                        rateLimitState.isRateLimited = true;
+                        const retryAfter = parseInt(response.headers.get('Retry-After')) || 60;
+                        throw new Error(`Rate limited. Retry after ${retryAfter} seconds`);
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    rateLimitState.isRateLimited = false;
+                    rateLimitState.retryCount = 0;
+                    return await response.json();
+                } catch (error) {
+                    if (retryCount < rateLimitState.maxRetries) {
+                        const delay = rateLimitState.baseDelay * Math.pow(2, retryCount);
+                        console.log(`Retrying after ${delay/1000} seconds...`);
+                        await sleep(delay);
+                        return fetchWithRetry(url, retryCount + 1);
+                    }
+                    throw error;
                 }
             }
 
@@ -470,76 +649,236 @@
                 tokenDiv.style.marginBottom = '15px';
                 tokenDiv.style.position = 'relative';
                 
-                const price = data[tokenId].usd;
-                const change = data[tokenId].usd_24h_change;
+                const tokenData = data[tokenId];
+                const price = tokenData.usd;
+                const change = tokenData.usd_24h_change;
                 
-                // Get token name from dropdown
+                // Get token name from dropdown or cache
                 const tokenOption = Array.from(tokenDropdown.options).find(opt => opt.value === tokenId);
                 const tokenName = tokenOption ? tokenOption.text : tokenId.charAt(0).toUpperCase() + tokenId.slice(1);
+                
+                // Get stored amount from localStorage
+                const storedAmount = localStorage.getItem(`token_amount_${tokenId}`) || '';
                 
                 tokenDiv.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>${tokenName}</div>
-                        <button class="remove-token" style="background: none; border: none; color: var(--secondary-color); cursor: pointer; font-size: 1.2em; padding: 0 5px;">×</button>
+                        <div style="display: flex; align-items: center;">
+                            ${tokenDataCache.lastUpdate ? `
+                                <span style="font-size: 0.8em; opacity: 0.7; margin-right: 10px;">
+                                    Last update: ${getTimeAgo(tokenDataCache.lastUpdate)}
+                                </span>
+                            ` : ''}
+                            <button class="remove-token" style="background: none; border: none; color: var(--secondary-color); cursor: pointer; font-size: 1.2em; padding: 0 5px;">×</button>
+                        </div>
                     </div>
                     <div class="price-change ${change >= 0 ? 'positive' : 'negative'}">
                         $${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         (${change.toFixed(2)}%)
                     </div>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-top: 5px;">
+                        <input type="number" 
+                               class="token-amount" 
+                               value="${storedAmount}"
+                               placeholder="Amount"
+                               style="width: 100px; padding: 4px; background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--secondary-color); border-radius: 3px;"
+                               min="0"
+                               step="any">
+                        <span class="token-value" style="color: var(--text-secondary);">
+                            ${storedAmount ? `$${(price * parseFloat(storedAmount)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : ''}
+                        </span>
+                    </div>
                 `;
+
+                // Add amount input handler
+                const amountInput = tokenDiv.querySelector('.token-amount');
+                const valueDisplay = tokenDiv.querySelector('.token-value');
+                
+                amountInput.addEventListener('input', (e) => {
+                    const amount = e.target.value;
+                    if (amount) {
+                        const value = price * parseFloat(amount);
+                        valueDisplay.textContent = `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                        localStorage.setItem(`token_amount_${tokenId}`, amount);
+                    } else {
+                        valueDisplay.textContent = '';
+                        localStorage.removeItem(`token_amount_${tokenId}`);
+                    }
+                    updatePortfolio();
+                });
 
                 // Add remove button handler
                 tokenDiv.querySelector('.remove-token').addEventListener('click', () => {
                     trackedTokens.delete(tokenId);
+                    localStorage.removeItem(`token_amount_${tokenId}`);
                     tokenDiv.remove();
                     localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                    updatePortfolio();
                 });
 
                 return tokenDiv;
             }
 
+            // Function to update portfolio section
+            function updatePortfolio() {
+                const portfolioList = document.querySelector('.dashboard-card:last-child .token-list');
+                let totalValue = 0;
+                let totalChange = 0;
+                let totalTokens = 0;
+                let assetCount = 0;
+
+                // Calculate totals from tracked tokens
+                trackedTokens.forEach(tokenId => {
+                    const tokenData = tokenDataCache.getData(tokenId);
+                    if (tokenData && tokenData.usd) {
+                        const amount = parseFloat(localStorage.getItem(`token_amount_${tokenId}`) || '0');
+                        if (amount > 0) {
+                            const value = tokenData.usd * amount;
+                            totalValue += value;
+                            totalChange += tokenData.usd_24h_change;
+                            totalTokens += amount;
+                            assetCount++;
+                        }
+                    }
+                });
+
+                // Calculate average 24h change
+                const avgChange = assetCount > 0 ? totalChange / assetCount : 0;
+
+                // Update portfolio display
+                portfolioList.innerHTML = `
+                    <li><span>Total Value:</span> <span>$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></li>
+                    <li><span>24h Change:</span> <span class="${avgChange >= 0 ? 'positive' : 'negative'}">${avgChange.toFixed(2)}%</span></li>
+                    <li><span>Assets:</span> <span>${assetCount} (${totalTokens.toLocaleString('en-US', { maximumFractionDigits: 2 })} tokens)</span></li>
+                `;
+            }
+
+            // Update portfolio when market data changes
+            const originalFetchMarketData = fetchMarketData;
+            fetchMarketData = async function() {
+                await originalFetchMarketData();
+                updatePortfolio();
+            };
+
+            function getTimeAgo(timestamp) {
+                const seconds = Math.floor((Date.now() - timestamp) / 1000);
+                if (seconds < 60) return 'just now';
+                const minutes = Math.floor(seconds / 60);
+                if (minutes < 60) return `${minutes}m ago`;
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return `${hours}h ago`;
+                return `${Math.floor(hours / 24)}d ago`;
+            }
+
             async function fetchMarketData() {
+                if (isRefreshing) {
+                    console.log('Refresh already in progress, please wait...');
+                    return;
+                }
+
+                if (rateLimitState.isRateLimited) {
+                    console.log('Rate limited. Please wait before refreshing.');
+                    return;
+                }
+
                 try {
                     if (trackedTokens.size === 0) {
                         trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">No tokens added. Select a token from the dropdown above.</div>';
                         return;
                     }
 
+                    isRefreshing = true;
                     refreshButton.classList.add('spinning');
-                    const response = await fetch(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/market-prices?tokens=${Array.from(trackedTokens).join(',')}`);
-                    const data = await response.json();
+                    refreshButton.style.opacity = '0.5';
+                    refreshButton.disabled = true;
 
-                    if (!data || typeof data !== 'object') {
-                        throw new Error('Invalid response data');
-                    }
-
-                    // Clear and update tracked tokens
-                    trackedTokensDiv.innerHTML = '';
-                    let hasValidTokens = false;
-
-                    for (const tokenId of trackedTokens) {
-                        if (data[tokenId] && data[tokenId].usd !== undefined) {
-                            trackedTokensDiv.appendChild(createTokenElement(tokenId, data));
-                            hasValidTokens = true;
-                        } else {
-                            console.error(`Invalid or missing data for token: ${tokenId}`);
-                            trackedTokens.delete(tokenId); // Remove invalid token
+                    // Display cached data first if available
+                    let hasValidCachedData = false;
+                    if (tokenDataCache.lastUpdate) {
+                        trackedTokensDiv.innerHTML = '';
+                        for (const tokenId of trackedTokens) {
+                            if (tokenDataCache.hasValidData(tokenId)) {
+                                trackedTokensDiv.appendChild(createTokenElement(tokenId, tokenDataCache.data));
+                                hasValidCachedData = true;
+                            }
                         }
                     }
 
-                    if (!hasValidTokens) {
-                        trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">Error loading token data. Please try again.</div>';
+                    const tokenList = Array.from(trackedTokens).join(',');
+                    const data = await fetchWithRetry(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/market-prices?tokens=${tokenList}`);
+
+                    if (!data || typeof data !== 'object' || data.error) {
+                        throw new Error('Invalid response data');
                     }
 
-                    // Update localStorage with valid tokens
-                    localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                    // Store valid token data
+                    let hasValidNewData = false;
+                    let invalidTokens = new Set();
+
+                    // First pass: validate and store new data
+                    for (const tokenId of trackedTokens) {
+                        if (data[tokenId] && data[tokenId].usd !== undefined) {
+                            hasValidNewData = true;
+                        } else {
+                            console.warn(`Invalid or missing data for token: ${tokenId}`);
+                            invalidTokens.add(tokenId);
+                        }
+                    }
+
+                    if (hasValidNewData) {
+                        // Store new data in cache
+                        tokenDataCache.storeData(data);
+                        
+                        // Clear and update display with new data
+                        trackedTokensDiv.innerHTML = '';
+                        for (const tokenId of trackedTokens) {
+                            if (!invalidTokens.has(tokenId)) {
+                                trackedTokensDiv.appendChild(createTokenElement(tokenId, data));
+                            }
+                        }
+
+                        // Remove invalid tokens
+                        invalidTokens.forEach(tokenId => {
+                            trackedTokens.delete(tokenId);
+                        });
+                        localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                    } else if (!hasValidCachedData) {
+                        trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">Error loading token data. Please try again in a moment.</div>';
+                    }
+
                 } catch (error) {
                     console.error('Error fetching market data:', error);
-                    trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">Error loading prices. Please try again.</div>';
+                    if (error.message.includes('Rate limited')) {
+                        if (!tokenDataCache.lastUpdate) {
+                            trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">Rate limit reached. Please wait a moment before refreshing.</div>';
+                        }
+                    } else if (!tokenDataCache.lastUpdate) {
+                        trackedTokensDiv.innerHTML = '<div style="color: var(--text-secondary);">Error loading prices. Please try again in a moment.</div>';
+                    }
                 } finally {
+                    isRefreshing = false;
                     refreshButton.classList.remove('spinning');
+                    refreshButton.style.opacity = '1';
+                    refreshButton.disabled = false;
                 }
             }
+
+            // Create debounced version of fetchMarketData with longer delay
+            const debouncedFetchMarketData = debounce(fetchMarketData, 5000);
+
+            // Update refresh button click handler with visual feedback
+            refreshButton.addEventListener('click', () => {
+                if (rateLimitState.isRateLimited) {
+                    refreshButton.style.opacity = '0.5';
+                    setTimeout(() => {
+                        refreshButton.style.opacity = '1';
+                    }, 1000);
+                    return;
+                }
+                if (!isRefreshing) {
+                    debouncedFetchMarketData();
+                }
+            });
 
             async function fetchGasData() {
                 try {
@@ -623,7 +962,11 @@
                 try {
                     refreshTokensButton.classList.add('spinning');
                     const response = await fetch('/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/top-tokens');
-                    const tokens = await response.json();
+                    const data = await response.json();
+
+                    if (!Array.isArray(data)) {
+                        throw new Error('Invalid response format');
+                    }
 
                     // Clear the list
                     topTokensList.innerHTML = '';
@@ -642,7 +985,7 @@
                     };
 
                     // Add each token to the list
-                    tokens.forEach(token => {
+                    data.forEach(token => {
                         const li = document.createElement('li');
                         li.innerHTML = `
                             <div style="display: flex; flex-direction: column;">
@@ -672,16 +1015,6 @@
                 trackedTokens = new Set(JSON.parse(savedTokens));
             }
 
-            // Add token button handler
-            addTokenButton.addEventListener('click', () => {
-                const selectedToken = tokenDropdown.value;
-                if (!trackedTokens.has(selectedToken)) {
-                    trackedTokens.add(selectedToken);
-                    localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
-                    fetchMarketData();
-                }
-            });
-
             // Fetch initial market data
             fetchMarketData();
 
@@ -691,11 +1024,6 @@
             // Fetch initial top tokens data
             fetchTopTokens();
 
-            // Add refresh button click handler
-            refreshButton.addEventListener('click', fetchMarketData);
-            refreshGasButton.addEventListener('click', fetchGasData);
-            refreshTokensButton.addEventListener('click', fetchTopTokens);
-
             // Event listeners
             sendButton.addEventListener('click', sendMessage);
             userInput.addEventListener('keypress', (e) => {
@@ -703,6 +1031,76 @@
                     sendMessage();
                 }
             });
+
+            // Token search functionality
+            const tokenSearch = document.getElementById('token-search');
+            const searchResults = document.getElementById('search-results');
+            let searchTimeout;
+
+            tokenSearch.addEventListener('input', async (e) => {
+                const query = e.target.value.trim();
+                if (query.length < 2) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/search-tokens?query=${encodeURIComponent(query)}`);
+                        const data = await response.json();
+
+                        if (!Array.isArray(data)) {
+                            throw new Error('Invalid response format');
+                        }
+
+                        searchResults.innerHTML = '';
+                        data.forEach(token => {
+                            const div = document.createElement('div');
+                            div.className = 'search-result-item';
+                            div.style.padding = '8px';
+                            div.style.cursor = 'pointer';
+                            div.style.borderBottom = '1px solid rgba(255, 255, 255, 0.1)';
+                            div.innerHTML = `${token.name} (${token.symbol})`;
+                            div.addEventListener('click', () => {
+                                if (!trackedTokens.has(token.id)) {
+                                    trackedTokens.add(token.id);
+                                    localStorage.setItem('trackedTokens', JSON.stringify(Array.from(trackedTokens)));
+                                    fetchMarketData();
+                                }
+                                tokenSearch.value = '';
+                                searchResults.style.display = 'none';
+                            });
+                            searchResults.appendChild(div);
+                        });
+
+                        searchResults.style.display = data.length > 0 ? 'block' : 'none';
+                    } catch (error) {
+                        console.error('Error searching tokens:', error);
+                        searchResults.innerHTML = '<div style="padding: 8px; color: var(--text-secondary);">Error searching tokens</div>';
+                        searchResults.style.display = 'block';
+                    }
+                }, 300);
+            });
+
+            // Close search results when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!tokenSearch.contains(e.target) && !searchResults.contains(e.target)) {
+                    searchResults.style.display = 'none';
+                }
+            });
+
+            // Add styles for search results
+            const style = document.createElement('style');
+            style.textContent = `
+                .search-result-item:hover {
+                    background: rgba(108, 92, 231, 0.2);
+                }
+                #search-results {
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                }
+            `;
+            document.head.appendChild(style);
         }); 
     </script>
 </body>

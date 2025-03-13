@@ -206,4 +206,61 @@ export async function routes() {
       res.status(500).json({ error: 'Failed to fetch market prices' });
     }
   });
+
+  // Endpoint to fetch available tokens
+  app.get("/api/available-tokens", async (_req, res) => {
+    try {
+      const response = await fetch(
+        'https://api.coingecko.com/api/v3/coins/markets?' +
+        'vs_currency=usd&' +
+        'order=market_cap_desc&' +  // Sort by market cap
+        'per_page=100&' +  // Get top 100 tokens
+        'page=1&' +
+        'sparkline=false'
+      );
+      
+      const data = await response.json();
+      
+      // Format the data we need
+      const formattedData = data.map(token => ({
+        id: token.id,
+        symbol: token.symbol.toUpperCase(),
+        name: token.name,
+        market_cap_rank: token.market_cap_rank
+      }));
+      
+      res.json(formattedData);
+    } catch (error) {
+      console.error('Error fetching available tokens:', error);
+      res.status(500).json({ error: 'Failed to fetch available tokens' });
+    }
+  });
+
+  // Endpoint to search for tokens
+  app.get("/api/search-tokens", async (req, res) => {
+    try {
+      const query = req.query.query;
+      if (!query) {
+        return res.status(400).json({ error: 'Query parameter is required' });
+      }
+
+      const response = await fetch(
+        `https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(query)}`
+      );
+      
+      const data = await response.json();
+      
+      // Format the search results
+      const formattedData = data.coins.map(token => ({
+        id: token.id,
+        symbol: token.symbol.toUpperCase(),
+        name: token.name
+      }));
+      
+      res.json(formattedData);
+    } catch (error) {
+      console.error('Error searching tokens:', error);
+      res.status(500).json({ error: 'Failed to search tokens' });
+    }
+  });
 }
