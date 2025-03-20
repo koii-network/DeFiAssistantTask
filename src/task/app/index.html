@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DeFi AI Assistant V0.0.6</title>
+    <title>DeFi AI Assistant V0.0.14</title>
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/koii-network/DeFiAssistantTask/refs/heads/main/src/assets/favicon.png">
     <style>
         :root {
@@ -370,6 +370,124 @@
             color: var(--secondary-color);
             pointer-events: none;
         }
+
+        /* Tab System Styles */
+        .tab-container {
+            margin-bottom: 20px;
+        }
+
+        .tab-navigation {
+            display: flex;
+            border-bottom: 2px solid rgba(108, 92, 231, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            margin-right: 5px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            font-weight: bold;
+        }
+        
+        /* Performance History Styles */
+        .scrollable-list {
+            max-height: 250px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .suggestions-table-container {
+            overflow-x: auto;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .suggestions-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: var(--text-secondary);
+        }
+        
+        .suggestions-table th {
+            text-align: left;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--secondary-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .suggestions-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .suggestions-table tr:hover td {
+            background: rgba(108, 92, 231, 0.1);
+        }
+        
+        .empty-state, .empty-state-row td {
+            text-align: center;
+            padding: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-style: italic;
+        }
+        
+        .action-button {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-button.warning {
+            background: rgba(214, 48, 49, 0.2);
+            color: #ff7675;
+            border: 1px solid rgba(214, 48, 49, 0.3);
+        }
+        
+        .action-button.warning:hover {
+            background: rgba(214, 48, 49, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .asset-performance-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .asset-name {
+            font-weight: bold;
+        }
+        
+        .asset-growth-chart {
+            height: 30px;
+            width: 80px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -392,68 +510,146 @@
             <button id="send-button">Send 💫</button>
         </div>
 
-        <!-- Dashboard Section -->
-        <div class="dashboard">
-            <div class="dashboard-card">
-                <h3>My Assets <button id="refresh-market" class="refresh-button">🔄</button></h3>
-                <div id="market-data">
-                    <div class="token-selector">
-                        <div style="margin-bottom: 10px;">
-                            <input type="text" id="token-search" placeholder="Search for any token..." style="width: 100%; padding: 8px; background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--secondary-color); border-radius: 5px; margin-bottom: 5px;">
-                            <div id="search-results" style="position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--secondary-color); border-radius: 5px; display: none; z-index: 1000;"></div>
-                        </div>
-                        <select id="token-dropdown" style="background: var(--card-bg); color: var(--text-primary); padding: 8px; border: 1px solid var(--secondary-color); border-radius: 5px; margin-bottom: 10px; width: 100%; cursor: pointer;">
-                            <option value="">Select from top 100 tokens...</option>
-                        </select>
-                        <button id="add-token" style="background: var(--primary-color); color: var(--text-primary); border: none; border-radius: 5px; padding: 8px 10px; cursor: pointer; margin-bottom: 10px; width: 100%; transition: background 0.3s;">Add Token</button>
-                    </div>
-                    <div id="tracked-tokens"></div>
-                </div>
-            </div>
-
-            <div class="dashboard-card">
-                <h3>Gas Tracker <button id="refresh-gas" class="refresh-button">🔄</button></h3>
-                <div id="gas-data">
-                    <div class="network-gas">
-                        <h4>Ethereum</h4>
-                        <p>High: <span id="eth-low-gas">Loading...</span></p>
-                        <p>Average: <span id="eth-avg-gas">Loading...</span></p>
-                        <p>Low: <span id="eth-high-gas">Loading...</span></p>
-                        <div class="gas-meter">
-                            <div class="gas-level" id="eth-gas-level"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card">
-                <h3>Top Performing Tokens <button id="refresh-tokens" class="refresh-button">🔄</button></h3>
-                <ul class="token-list" id="top-tokens-list">
-                    <li><span>Loading tokens...</span></li>
-                </ul>
-            </div>
-
-            <div class="dashboard-card">
-                <h3>Your Portfolio</h3>
-                <ul class="token-list">
-                    <li><span>Total Value:</span> <span>$15,652</span></li>
-                    <li><span>24h Change:</span> <span class="positive">+9.6%</span></li>
-                    <li><span>Assets:</span> <span>8</span></li>
-                </ul>
+        <!-- Tab Navigation -->
+        <div class="tab-container">
+            <div class="tab-navigation">
+                <button class="tab-button active" data-tab="dashboard">Dashboard</button>
+                <button class="tab-button" data-tab="performance">Performance History</button>
             </div>
         </div>
 
-        <!-- Portfolio Visualizations -->
-        <div class="visualization-section" style="margin-top: 30px;">
-            <div class="dashboard-card" style="grid-column: 1 / -1; margin-bottom: 20px;">
-                <h3>Portfolio Distribution <button id="refresh-charts" class="refresh-button">🔄</button></h3>
-                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 300px;">
-                        <canvas id="portfolioPieChart"></canvas>
+        <!-- Dashboard Section -->
+        <div class="tab-content" id="dashboard-tab">
+            <div class="dashboard">
+                <div class="dashboard-card">
+                    <h3>My Assets <button id="refresh-market" class="refresh-button">🔄</button></h3>
+                    <div id="market-data">
+                        <div class="token-selector">
+                            <div style="margin-bottom: 10px;">
+                                <input type="text" id="token-search" placeholder="Search for any token..." style="width: 100%; padding: 8px; background: var(--card-bg); color: var(--text-primary); border: 1px solid var(--secondary-color); border-radius: 5px; margin-bottom: 5px;">
+                                <div id="search-results" style="position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: var(--card-bg); border: 1px solid var(--secondary-color); border-radius: 5px; display: none; z-index: 1000;"></div>
+                            </div>
+                            <select id="token-dropdown" style="background: var(--card-bg); color: var(--text-primary); padding: 8px; border: 1px solid var(--secondary-color); border-radius: 5px; margin-bottom: 10px; width: 100%; cursor: pointer;">
+                                <option value="">Select from top 100 tokens...</option>
+                            </select>
+                            <button id="add-token" style="background: var(--primary-color); color: var(--text-primary); border: none; border-radius: 5px; padding: 8px 10px; cursor: pointer; margin-bottom: 10px; width: 100%; transition: background 0.3s;">Add Token</button>
+                        </div>
+                        <div id="tracked-tokens"></div>
                     </div>
-                    <div style="flex: 1; min-width: 300px;">
-                        <canvas id="portfolioBarChart"></canvas>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Gas Tracker <button id="refresh-gas" class="refresh-button">🔄</button></h3>
+                    <div id="gas-data">
+                        <div class="network-gas">
+                            <h4>Ethereum</h4>
+                            <p>High: <span id="eth-low-gas">Loading...</span></p>
+                            <p>Average: <span id="eth-avg-gas">Loading...</span></p>
+                            <p>Low: <span id="eth-high-gas">Loading...</span></p>
+                            <div class="gas-meter">
+                                <div class="gas-level" id="eth-gas-level"></div>
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Top Performing Tokens <button id="refresh-tokens" class="refresh-button">🔄</button></h3>
+                    <ul class="token-list" id="top-tokens-list">
+                        <li><span>Loading tokens...</span></li>
+                    </ul>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Your Portfolio</h3>
+                    <ul class="token-list">
+                        <li><span>Total Value:</span> <span>$15,652</span></li>
+                        <li><span>24h Change:</span> <span class="positive">+9.6%</span></li>
+                        <li><span>Assets:</span> <span>8</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Portfolio Visualizations -->
+            <div class="visualization-section" style="margin-top: 30px;">
+                <div class="dashboard-card" style="grid-column: 1 / -1; margin-bottom: 20px;">
+                    <h3>Portfolio Distribution <button id="refresh-charts" class="refresh-button">🔄</button></h3>
+                    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 300px;">
+                            <canvas id="portfolioPieChart"></canvas>
+                        </div>
+                        <div style="flex: 1; min-width: 300px;">
+                            <canvas id="portfolioBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance History Tab -->
+        <div class="tab-content" id="performance-tab" style="display: none;">
+            <div class="dashboard">
+                <div class="dashboard-card" style="grid-column: 1 / -1;">
+                    <h3>Portfolio Value History <button id="refresh-history" class="refresh-button">Add Portfolio Snapshot</button></h3>
+                    <div style="height: 300px;">
+                        <canvas id="portfolioHistoryChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h3>Performance Metrics</h3>
+                    <ul class="token-list">
+                        <li><span>Starting Value:</span> <span id="starting-value">$0.00</span></li>
+                        <li><span>Current Value:</span> <span id="current-value">$0.00</span></li>
+                        <li><span>Total Growth:</span> <span id="total-growth" class="positive">0.00%</span></li>
+                        <li><span>Avg. Daily Growth:</span> <span id="avg-daily-growth" class="positive">0.00%</span></li>
+                        <li><span>Best Performing Asset:</span> <span id="best-asset">-</span></li>
+                    </ul>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h3>AI Suggestion Impact</h3>
+                    <ul class="token-list">
+                        <li><span>Total Suggestions:</span> <span id="suggestion-count">0</span></li>
+                        <li><span>Positive Outcome:</span> <span id="positive-outcomes">0</span></li>
+                        <li><span>Avg. ROI per Suggestion:</span> <span id="avg-roi" class="positive">0.00%</span></li>
+                    </ul>
+                    <div style="margin-top: 15px;">
+                        <button id="reset-history" class="action-button warning">Reset History</button>
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <h3>Asset Performance</h3>
+                    <div id="asset-performance-list" class="scrollable-list">
+                        <!-- Asset performance will be populated by JavaScript -->
+                        <div class="empty-state">Add tokens to your portfolio to track asset performance</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="dashboard-card" style="grid-column: 1 / -1; margin-top: 20px;">
+                <h3>Suggestions History</h3>
+                <div class="suggestions-table-container">
+                    <table class="suggestions-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Token</th>
+                                <th>Suggestion</th>
+                                <th>Price at Suggestion</th>
+                                <th>Current Price</th>
+                                <th>Change</th>
+                                <th>Outcome</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suggestions-history">
+                            <!-- Suggestion history will be populated by JavaScript -->
+                            <tr class="empty-state-row">
+                                <td colspan="7">No suggestions recorded yet</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -465,7 +661,7 @@
             const userInput = document.getElementById('user-input');
             const sendButton = document.getElementById('send-button');
             const loadingIndicator = document.getElementById('loading');
-            
+
             // Disclaimer handling
             const disclaimerBanner = document.getElementById('disclaimer-banner');
             const hideDisclaimerBtn = document.getElementById('hide-disclaimer');
@@ -1395,6 +1591,596 @@
 
             // Initial chart update
             updateCharts();
+
+            // Tab system handling
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.dataset.tab;
+                    
+                    // Update active tab button
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // Show selected tab content, hide others
+                    tabContents.forEach(content => {
+                        content.style.display = content.id === `${tabId}-tab` ? 'block' : 'none';
+                    });
+                    
+                    // If performance tab is selected, update the history charts
+                    if (tabId === 'performance') {
+                        updatePortfolioHistoryCharts();
+                    }
+                });
+            });
+            
+            // Portfolio history tracking
+            let portfolioHistory = [];
+            let suggestionHistory = [];
+            let portfolioHistoryChart = null;  // Add chart instance variable
+            
+            // Load history from localStorage on startup
+            function loadHistoryData() {
+                const storedPortfolioHistory = localStorage.getItem('portfolioHistory');
+                const storedSuggestionHistory = localStorage.getItem('suggestionHistory');
+                
+                if (storedPortfolioHistory) {
+                    portfolioHistory = JSON.parse(storedPortfolioHistory);
+                }
+                
+                if (storedSuggestionHistory) {
+                    suggestionHistory = JSON.parse(storedSuggestionHistory);
+                }
+                
+                // If no history exists, initialize with current portfolio
+                if (portfolioHistory.length === 0) {
+                    recordPortfolioSnapshot();
+                }
+            }
+            
+            // Record current portfolio state
+            function recordPortfolioSnapshot() {
+                const portfolioList = document.querySelector('.dashboard-card:last-child .token-list');
+                const portfolioItems = portfolioList.querySelectorAll('li');
+                
+                if (portfolioItems.length < 3) return; // Not enough data
+                
+                const totalValue = parseFloat(portfolioItems[0].querySelector('span:last-child').textContent.replace(/[^0-9.-]+/g, '')),
+                      change24h = parseFloat(portfolioItems[1].querySelector('span:last-child').textContent.replace(/[^0-9.-]+/g, ''));
+                
+                const assetData = {};
+                trackedTokens.forEach(tokenId => {
+                    const tokenData = tokenDataCache.getData(tokenId);
+                    if (tokenData && tokenData.usd) {
+                        const amount = parseFloat(localStorage.getItem(`token_amount_${tokenId}`) || '0');
+                        if (amount > 0) {
+                            assetData[tokenId] = {
+                                amount: amount,
+                                price: tokenData.usd,
+                                value: tokenData.usd * amount,
+                                change24h: tokenData.usd_24h_change
+                            };
+                        }
+                    }
+                });
+                
+                const snapshot = {
+                    timestamp: Date.now(),
+                    totalValue: totalValue,
+                    change24h: change24h,
+                    assets: assetData
+                };
+                
+                // Add to history, limit to 180 days (6 months) of daily snapshots
+                portfolioHistory.push(snapshot);
+                
+                // Ensure we're not storing too many snapshots (keep roughly one per day for older data)
+                if (portfolioHistory.length > 180) {
+                    // Only delete if we have more than a month of data
+                    if (portfolioHistory.length > 30) {
+                        // Group older snapshots by day and keep only one per day
+                        const groupedByDay = {};
+                        const cutoffDate = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days ago
+                        
+                        for (let i = 0; i < portfolioHistory.length - 30; i++) {
+                            const snapshot = portfolioHistory[i];
+                            if (snapshot.timestamp >= cutoffDate) continue;
+                            
+                            const day = new Date(snapshot.timestamp).toDateString();
+                            if (!groupedByDay[day]) {
+                                groupedByDay[day] = snapshot;
+                            }
+                        }
+                        
+                        // Get recent 30 days + one snapshot per day for older data
+                        const recent = portfolioHistory.slice(-30);
+                        portfolioHistory = [...Object.values(groupedByDay), ...recent];
+                        
+                        // Sort by timestamp to ensure chronological order
+                        portfolioHistory.sort((a, b) => a.timestamp - b.timestamp);
+                    }
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('portfolioHistory', JSON.stringify(portfolioHistory));
+                
+                // Update performance metrics
+                updatePerformanceMetrics();
+            }
+            
+            // Track AI suggestions from chat
+            function trackAiSuggestion(message, response) {
+                // Look for buy/sell recommendations in AI response
+                const buyMatch = response.toLowerCase().match(/(?:should|recommend|advise to) buy ([a-zA-Z\s]+)/i);
+                const sellMatch = response.toLowerCase().match(/(?:should|recommend|advise to) sell ([a-zA-Z\s]+)/i);
+                const holdMatch = response.toLowerCase().match(/(?:should|recommend|advise to) hold ([a-zA-Z\s]+)/i);
+                
+                if (buyMatch || sellMatch || holdMatch) {
+                    const action = buyMatch ? 'Buy' : (sellMatch ? 'Sell' : 'Hold');
+                    const tokenName = (buyMatch || sellMatch || holdMatch)[1].trim();
+                    
+                    // Try to find the token ID
+                    let tokenId = null;
+                    let currentPrice = null;
+                    
+                    // First check if token is in portfolio
+                    trackedTokens.forEach(id => {
+                        if (id.toLowerCase().includes(tokenName.toLowerCase())) {
+                            tokenId = id;
+                            const tokenData = tokenDataCache.getData(id);
+                            if (tokenData && tokenData.usd) {
+                                currentPrice = tokenData.usd;
+                            }
+                        }
+                    });
+                    
+                    // If token was found, add to suggestion history
+                    if (tokenId && currentPrice) {
+                        const suggestion = {
+                            timestamp: Date.now(),
+                            token: tokenId,
+                            tokenName: tokenName,
+                            action: action,
+                            initialPrice: currentPrice,
+                            currentPrice: currentPrice,
+                            message: message,
+                            response: response
+                        };
+                        
+                        suggestionHistory.push(suggestion);
+                        localStorage.setItem('suggestionHistory', JSON.stringify(suggestionHistory));
+                        
+                        // Update suggestion metrics
+                        updateSuggestionMetrics();
+                    }
+                }
+            }
+            
+            // Update all tokens' current prices in suggestion history
+            function updateSuggestionPrices() {
+                let updated = false;
+                
+                suggestionHistory.forEach(suggestion => {
+                    const tokenData = tokenDataCache.getData(suggestion.token);
+                    if (tokenData && tokenData.usd) {
+                        suggestion.currentPrice = tokenData.usd;
+                        updated = true;
+                    }
+                });
+                
+                if (updated) {
+                    localStorage.setItem('suggestionHistory', JSON.stringify(suggestionHistory));
+                    updateSuggestionMetrics();
+                }
+            }
+            
+            // Update portfolio history charts and metrics
+            function updatePortfolioHistoryCharts() {
+                if (portfolioHistory.length === 0) {
+                    return;
+                }
+                
+                // Prepare data for charts
+                const labels = portfolioHistory.map(snapshot => {
+                    const date = new Date(snapshot.timestamp);
+                    return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+                });
+                
+                const values = portfolioHistory.map(snapshot => snapshot.totalValue);
+                
+                // Get chart context
+                const ctx = document.getElementById('portfolioHistoryChart').getContext('2d');
+                
+                // Destroy existing chart if it exists
+                if (portfolioHistoryChart) {
+                    portfolioHistoryChart.destroy();
+                }
+                
+                // Create new chart
+                portfolioHistoryChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Portfolio Value (USD)',
+                            data: values,
+                            backgroundColor: 'rgba(108, 92, 231, 0.1)',
+                            borderColor: 'var(--primary-color)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3,
+                            pointBackgroundColor: 'var(--primary-color)',
+                            pointRadius: 4,
+                            pointHoverRadius: 8,
+                            pointHoverBackgroundColor: '#ff7675',
+                            pointHoverBorderColor: '#d63031',
+                            pointHoverBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)'
+                                },
+                                ticks: {
+                                    color: 'var(--text-secondary)',
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)'
+                                },
+                                ticks: {
+                                    color: 'var(--text-secondary)',
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Value: $' + context.raw.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        }) + ' (click to remove)';
+                                    },
+                                    title: function(context) {
+                                        const index = context[0].dataIndex;
+                                        const date = new Date(portfolioHistory[index].timestamp);
+                                        return date.toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric'
+                                        });
+                                    }
+                                }
+                            },
+                            legend: {
+                                display: false
+                            }
+                        },
+                        onClick: (e, elements) => {
+                            if (elements.length > 0) {
+                                const index = elements[0].index;
+                                
+                                // Ask for confirmation before removing the snapshot
+                                if (confirm(`Remove snapshot from ${new Date(portfolioHistory[index].timestamp).toLocaleDateString()}?`)) {
+                                    // Remove the snapshot at this index
+                                    portfolioHistory.splice(index, 1);
+                                    
+                                    // Save updated history to localStorage
+                                    localStorage.setItem('portfolioHistory', JSON.stringify(portfolioHistory));
+                                    
+                                    // Redraw the chart
+                                    updatePortfolioHistoryCharts();
+                                }
+                            }
+                        },
+                        onHover: (e, elements) => {
+                            // Change cursor to pointer when hovering over a data point
+                            e.native.target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
+                        }
+                    }
+                });
+                
+                // Update metrics after charts
+                updatePerformanceMetrics();
+                updateSuggestionMetrics();
+                updateAssetPerformance();
+            }
+            
+            // Update performance metrics
+            function updatePerformanceMetrics() {
+                if (portfolioHistory.length === 0) {
+                    return;
+                }
+                
+                const startValue = portfolioHistory[0].totalValue;
+                const currentValue = portfolioHistory[portfolioHistory.length - 1].totalValue;
+                const totalGrowth = currentValue > 0 ? ((currentValue - startValue) / startValue) * 100 : 0;
+                
+                // Calculate average daily growth (geometric mean)
+                let avgDailyGrowth = 0;
+                if (portfolioHistory.length > 1) {
+                    const days = (portfolioHistory[portfolioHistory.length - 1].timestamp - portfolioHistory[0].timestamp) / (24 * 60 * 60 * 1000);
+                    
+                    if (days > 0 && currentValue > 0 && startValue > 0) {
+                        // Use the geometric mean formula: (final/initial)^(1/days) - 1
+                        avgDailyGrowth = (Math.pow(currentValue / startValue, 1 / Math.max(1, days)) - 1) * 100;
+                    }
+                }
+                
+                // Find best performing asset
+                let bestAsset = "-";
+                let bestGrowth = 0;
+                
+                // Need at least two data points to calculate growth
+                if (portfolioHistory.length > 1) {
+                    const oldestSnapshot = portfolioHistory[0];
+                    const latestSnapshot = portfolioHistory[portfolioHistory.length - 1];
+                    
+                    const growthByAsset = {};
+                    
+                    // Calculate growth for assets that exist in both snapshots
+                    Object.keys(latestSnapshot.assets).forEach(assetId => {
+                        if (oldestSnapshot.assets[assetId]) {
+                            const oldPrice = oldestSnapshot.assets[assetId].price || 0;
+                            const currentPrice = latestSnapshot.assets[assetId].price || 0;
+                            
+                            if (oldPrice > 0 && currentPrice > 0) {
+                                const growth = ((currentPrice - oldPrice) / oldPrice) * 100;
+                                growthByAsset[assetId] = growth;
+                                
+                                if (growth > bestGrowth) {
+                                    bestGrowth = growth;
+                                    bestAsset = assetId;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Format best asset name
+                    if (bestAsset !== "-") {
+                        const bestAssetElement = document.getElementById('best-asset');
+                        bestAssetElement.textContent = `${bestAsset} (${bestGrowth > 0 ? '+' : ''}${bestGrowth.toFixed(2)}%)`;
+                        bestAssetElement.className = bestGrowth >= 0 ? 'positive' : 'negative';
+                    }
+                }
+                
+                // Update DOM elements
+                document.getElementById('starting-value').textContent = `$${startValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                document.getElementById('current-value').textContent = `$${currentValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                
+                const totalGrowthElement = document.getElementById('total-growth');
+                totalGrowthElement.textContent = `${totalGrowth > 0 ? '+' : ''}${totalGrowth.toFixed(2)}%`;
+                totalGrowthElement.className = totalGrowth >= 0 ? 'positive' : 'negative';
+                
+                const avgGrowthElement = document.getElementById('avg-daily-growth');
+                avgGrowthElement.textContent = `${avgDailyGrowth > 0 ? '+' : ''}${avgDailyGrowth.toFixed(2)}%`;
+                avgGrowthElement.className = avgDailyGrowth >= 0 ? 'positive' : 'negative';
+            }
+            
+            // Update suggestion metrics
+            function updateSuggestionMetrics() {
+                // Skip if no suggestions
+                if (suggestionHistory.length === 0) {
+                    return;
+                }
+                
+                let positiveOutcomes = 0;
+                let totalROI = 0;
+                
+                // Clear existing table rows
+                const tbody = document.getElementById('suggestions-history');
+                tbody.innerHTML = '';
+                
+                // Add each suggestion to the table
+                suggestionHistory.forEach(suggestion => {
+                    const row = document.createElement('tr');
+                    
+                    // Calculate price change percentage
+                    const priceChange = suggestion.initialPrice > 0 
+                        ? ((suggestion.currentPrice - suggestion.initialPrice) / suggestion.initialPrice) * 100 
+                        : 0;
+                    
+                    // Determine if outcome is positive (Buy = price up, Sell = price down)
+                    const isPositiveOutcome = (suggestion.action === 'Buy' && priceChange > 0) || 
+                                             (suggestion.action === 'Sell' && priceChange < 0) ||
+                                             (suggestion.action === 'Hold' && Math.abs(priceChange) < 2); // Hold is positive if price is stable
+                    
+                    if (isPositiveOutcome) {
+                        positiveOutcomes++;
+                    }
+                    
+                    // Add ROI based on action
+                    if (suggestion.action === 'Buy') {
+                        totalROI += priceChange;
+                    } else if (suggestion.action === 'Sell') {
+                        totalROI += -priceChange; // Inverse for sell - price drop is positive ROI
+                    }
+                    
+                    // Format date
+                    const date = new Date(suggestion.timestamp);
+                    const dateStr = date.toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                    });
+                    
+                    // Create table row
+                    row.innerHTML = `
+                        <td>${dateStr}</td>
+                        <td>${suggestion.token}</td>
+                        <td>${suggestion.action}</td>
+                        <td>$${suggestion.initialPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                        <td>$${suggestion.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>
+                        <td class="${priceChange >= 0 ? 'positive' : 'negative'}">${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}%</td>
+                        <td class="${isPositiveOutcome ? 'positive' : 'negative'}">${isPositiveOutcome ? '✅ Good' : '❌ Bad'}</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // Update suggestion metrics
+                document.getElementById('suggestion-count').textContent = suggestionHistory.length;
+                document.getElementById('positive-outcomes').textContent = `${positiveOutcomes} (${((positiveOutcomes / suggestionHistory.length) * 100).toFixed(1)}%)`;
+                
+                const avgROI = totalROI / suggestionHistory.length;
+                const roiElement = document.getElementById('avg-roi');
+                roiElement.textContent = `${avgROI > 0 ? '+' : ''}${avgROI.toFixed(2)}%`;
+                roiElement.className = avgROI >= 0 ? 'positive' : 'negative';
+            }
+            
+            // Update asset performance list
+            function updateAssetPerformance() {
+                const container = document.getElementById('asset-performance-list');
+                container.innerHTML = '';
+                
+                if (portfolioHistory.length < 2) {
+                    container.innerHTML = '<div class="empty-state">Need more history data to show asset performance</div>';
+                    return;
+                }
+                
+                // Get earliest and latest snapshots
+                const earliestSnapshot = portfolioHistory[0];
+                const latestSnapshot = portfolioHistory[portfolioHistory.length - 1];
+                
+                // Calculate performance for each asset
+                const assetPerformance = [];
+                
+                Object.keys(latestSnapshot.assets).forEach(assetId => {
+                    const currentData = latestSnapshot.assets[assetId];
+                    let initialPrice = 0;
+                    
+                    // Try to find the asset in the earliest snapshot
+                    if (earliestSnapshot.assets[assetId]) {
+                        initialPrice = earliestSnapshot.assets[assetId].price;
+                    } else {
+                        // If not in earliest, find first appearance
+                        for (const snapshot of portfolioHistory) {
+                            if (snapshot.assets[assetId]) {
+                                initialPrice = snapshot.assets[assetId].price;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Skip if we couldn't find initial price
+                    if (initialPrice <= 0) return;
+                    
+                    const growth = ((currentData.price - initialPrice) / initialPrice) * 100;
+                    
+                    assetPerformance.push({
+                        id: assetId,
+                        name: assetId.charAt(0).toUpperCase() + assetId.slice(1),
+                        initialPrice: initialPrice,
+                        currentPrice: currentData.price,
+                        growth: growth,
+                        value: currentData.value
+                    });
+                });
+                
+                // Sort by absolute growth (best performers first)
+                assetPerformance.sort((a, b) => Math.abs(b.growth) - Math.abs(a.growth));
+                
+                // Add to container
+                assetPerformance.forEach(asset => {
+                    const div = document.createElement('div');
+                    div.className = 'asset-performance-item';
+                    
+                    div.innerHTML = `
+                        <div>
+                            <span class="asset-name">${asset.name}</span>
+                            <div>$${asset.initialPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} → 
+                                 $${asset.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</div>
+                        </div>
+                        <div>
+                            <span class="${asset.growth >= 0 ? 'positive' : 'negative'}">${asset.growth > 0 ? '+' : ''}${asset.growth.toFixed(2)}%</span>
+                            <div>$${asset.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(div);
+                });
+                
+                if (assetPerformance.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No asset performance data available</div>';
+                }
+            }
+            
+            // Enhanced version of sendMessage to track suggestions
+            const originalSendMessage = sendMessage;
+            sendMessage = async function() {
+                const messageInput = document.getElementById('user-input');
+                const message = messageInput.value.trim();
+                
+                if (!message) return;
+                
+                // Record a portfolio snapshot before processing any message
+                recordPortfolioSnapshot();
+                
+                // Process message with original function to get response
+                const response = await originalSendMessage.call(this);
+                
+                // Check for AI suggestions in the response and track them
+                if (response && typeof response === 'object' && response.response) {
+                    trackAiSuggestion(message, response.response);
+                }
+                
+                return response;
+            };
+            
+            // Handle reset history button
+            document.getElementById('reset-history').addEventListener('click', () => {
+                if (confirm('Are you sure you want to reset all portfolio history data? This cannot be undone.')) {
+                    portfolioHistory = [];
+                    suggestionHistory = [];
+                    localStorage.removeItem('portfolioHistory');
+                    localStorage.removeItem('suggestionHistory');
+                    
+                    // Initialize with current snapshot
+                    recordPortfolioSnapshot();
+                    updatePortfolioHistoryCharts();
+                    
+                    alert('Portfolio history has been reset.');
+                }
+            });
+            
+            // Handle refresh history button (now "Add Portfolio Snapshot")
+            document.getElementById('refresh-history').addEventListener('click', () => {
+                recordPortfolioSnapshot();
+                updateSuggestionPrices();
+                updatePortfolioHistoryCharts();
+                alert('New portfolio snapshot added!');
+            });
+            
+            // Schedule periodic updates (every 6 hours)
+            const SNAPSHOT_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+            setInterval(() => {
+                recordPortfolioSnapshot();
+                updateSuggestionPrices();
+            }, SNAPSHOT_INTERVAL);
+            
+            // Load history data on startup
+            loadHistoryData();
+            
+            // Update suggestion prices when market data is refreshed
+            const originalFetchMarketDataForSuggestions = fetchMarketData;
+            fetchMarketData = async function() {
+                await originalFetchMarketDataForSuggestions();
+                updateSuggestionPrices();
+            };
         }); 
     </script>
 </body>
