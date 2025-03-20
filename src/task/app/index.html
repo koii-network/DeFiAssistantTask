@@ -36,6 +36,59 @@
             box-shadow: 0 0 30px rgba(108, 92, 231, 0.2);
         }
 
+        .disclaimer-banner {
+            background: rgba(253, 203, 110, 0.2);
+            border-left: 4px solid #fdcb6e;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #f0f0f0;
+            text-align: left;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .disclaimer-banner b {
+            color: #fdcb6e;
+        }
+
+        .disclaimer-text {
+            flex: 1;
+        }
+
+        .hide-disclaimer {
+            background: rgba(0, 206, 201, 0.2);
+            border: 1px solid var(--secondary-color);
+            color: var(--text-primary);
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-left: 15px;
+            white-space: nowrap;
+        }
+
+        .hide-disclaimer:hover {
+            background: rgba(0, 206, 201, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .hidden-disclaimer {
+            height: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+            opacity: 0;
+        }
+
         h1 {
             text-align: center;
             color: var(--primary-color);
@@ -59,6 +112,7 @@
             padding: 10px 15px;
             border-radius: 10px;
             max-width: 80%;
+            position: relative;
         }
 
         .user-message {
@@ -69,8 +123,12 @@
         .bot-message {
             background: var(--card-bg);
             margin-right: auto;
-            position: relative;
             border-left: 3px solid var(--secondary-color);
+        }
+
+        .message-content {
+            margin-right: 80px;
+            word-wrap: break-word;
         }
 
         .input-container {
@@ -193,12 +251,14 @@
 
         .feedback-buttons {
             position: absolute;
-            right: 10px;
+            right: 15px;
             top: 50%;
             transform: translateY(-50%);
             display: flex;
-            gap: 10px;
+            gap: 15px;
             align-items: center;
+            background: transparent;
+            padding: 5px;
         }
 
         .feedback-button {
@@ -206,11 +266,13 @@
             border: none;
             cursor: pointer;
             font-size: 1.2em;
-            padding: 5px;
+            padding: 8px;
             opacity: 0.7;
             transition: all 0.3s ease;
             position: relative;
             z-index: 1;
+            min-width: 30px;
+            text-align: center;
         }
 
         .feedback-button:hover {
@@ -312,6 +374,12 @@
 </head>
 <body>
     <div class="container">
+        <div class="disclaimer-banner" id="disclaimer-banner">
+            <div class="disclaimer-text">
+                <b>Disclaimer: </b> This is an AI-powered tool designed for informational purposes only. The financial insights and data provided may not be guaranteed to be accurate or up-to-date. Always conduct your own research or consult with a professional before making any financial decisions.
+            </div>
+            <button class="hide-disclaimer" id="hide-disclaimer">I Acknowledge</button>
+        </div>
         <h1><img src="https://raw.githubusercontent.com/koii-network/DeFiAssistantTask/1893e7950fa30cfb95ca4225ca789307df69365b/src/assets/logo.svg" alt="DeFi Assistant Logo" class="logo-image">DeFi AI Assistant</h1>
         <div class="chat-container" id="chat-container">
             <div class="message bot-message">
@@ -374,31 +442,71 @@
                 </ul>
             </div>
         </div>
+
+        <!-- Portfolio Visualizations -->
+        <div class="visualization-section" style="margin-top: 30px;">
+            <div class="dashboard-card" style="grid-column: 1 / -1; margin-bottom: 20px;">
+                <h3>Portfolio Distribution <button id="refresh-charts" class="refresh-button">🔄</button></h3>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <canvas id="portfolioPieChart"></canvas>
+                    </div>
+                    <div style="flex: 1; min-width: 300px;">
+                        <canvas id="portfolioBarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const chatContainer = document.getElementById('chat-container');
             const userInput = document.getElementById('user-input');
             const sendButton = document.getElementById('send-button');
             const loadingIndicator = document.getElementById('loading');
+            
+            // Disclaimer handling
+            const disclaimerBanner = document.getElementById('disclaimer-banner');
+            const hideDisclaimerBtn = document.getElementById('hide-disclaimer');
+            
+            // Always show disclaimer on page load (no localStorage check)
+            // Ensure the disclaimer is visible
+            disclaimerBanner.classList.remove('hidden-disclaimer');
+            
+            // Add event listener to hide button
+            hideDisclaimerBtn.addEventListener('click', () => {
+                disclaimerBanner.classList.add('hidden-disclaimer');
+                // We no longer store in localStorage since we want it to reappear on reload
+            });
 
             // Chat message handling
             async function sendMessage() {
-                const message = userInput.value.trim();
+                const messageInput = document.getElementById('user-input');
+                const message = messageInput.value.trim();
                 if (!message) return;
 
+                // Get current portfolio data
+                const portfolioList = document.querySelector('.dashboard-card:last-child .token-list');
+                const portfolioItems = portfolioList.querySelectorAll('li');
+                
+                const portfolio = {
+                    totalValue: parseFloat(portfolioItems[0].querySelector('span:last-child').textContent.replace(/[^0-9.-]+/g, '')),
+                    totalChange: parseFloat(portfolioItems[1].querySelector('span:last-child').textContent.replace(/[^0-9.-]+/g, '')),
+                    assetCount: parseInt(portfolioItems[2].querySelector('span:last-child').textContent.split('(')[0]),
+                    totalTokens: parseFloat(portfolioItems[2].querySelector('span:last-child').textContent.match(/\(([^)]+)\)/)[1].replace(/[^0-9.-]+/g, '')),
+                    assets: Array.from(document.querySelectorAll('.token-card')).map(card => ({
+                        id: card.dataset.tokenId,
+                        amount: parseFloat(card.querySelector('.token-amount').value || '0'),
+                        price: parseFloat(card.querySelector('.price-change').textContent.match(/\$([0-9.]+)/)[1]),
+                        value: parseFloat(card.querySelector('.token-value').textContent.replace(/[^0-9.-]+/g, '') || '0'),
+                        change_24h: parseFloat(card.querySelector('.price-change').textContent.match(/\(([^)]+)\)/)[1])
+                    }))
+                };
+
                 // Add user message to chat
-                const userMessageDiv = document.createElement('div');
-                userMessageDiv.className = 'message user-message';
-                userMessageDiv.textContent = message;
-                chatContainer.appendChild(userMessageDiv);
-
-                // Clear input and scroll to bottom
-                userInput.value = '';
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-
-                // Show loading indicator
-                loadingIndicator.style.display = 'block';
+                addMessageToChat('user', message);
+                messageInput.value = '';
 
                 try {
                     const response = await fetch('/task/FGzVTXn6iZFhFo9FgWW6zoHfDkJepQkKKKPfMvDdvePv/api/chat', {
@@ -406,26 +514,37 @@
                         headers: {
                             'Content-Type': 'application/json',
                         },
-                        body: JSON.stringify({ message })
+                        body: JSON.stringify({ message, portfolio })
                     });
 
+                    if (!response.ok) {
+                        throw new Error('Failed to send message');
+                    }
+
                     const data = await response.json();
+                    addMessageToChat('assistant', data.response, data.messageId);
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessageToChat('assistant', 'Sorry, I encountered an error. Please try again.');
+                }
+            }
 
-                    // Add bot response to chat
-                    const botMessageDiv = document.createElement('div');
-                    botMessageDiv.className = 'message bot-message';
-                    botMessageDiv.textContent = data.response;
-
-                    // Add feedback buttons
-                    const feedbackButtons = document.createElement('div');
-                    feedbackButtons.className = 'feedback-buttons';
-                    feedbackButtons.innerHTML = `
-                        <button class="feedback-button" data-type="positive" data-message-id="${data.messageId}">👍</button>
-                        <button class="feedback-button" data-type="negative" data-message-id="${data.messageId}">👎</button>
+            // Function to add message to chat
+            function addMessageToChat(role, content, messageId = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${role === 'assistant' ? 'bot-message' : 'user-message'}`;
+                
+                if (role === 'assistant') {
+                    messageDiv.innerHTML = `
+                        <div class="message-content">${content}</div>
+                        <div class="feedback-buttons">
+                            <button class="feedback-button" data-type="positive" data-message-id="${messageId}">👍</button>
+                            <button class="feedback-button" data-type="negative" data-message-id="${messageId}">👎</button>
+                        </div>
                     `;
 
                     // Add feedback button handlers
-                    feedbackButtons.querySelectorAll('.feedback-button').forEach(button => {
+                    messageDiv.querySelectorAll('.feedback-button').forEach(button => {
                         button.addEventListener('click', async function() {
                             const messageId = this.dataset.messageId;
                             const feedbackType = this.dataset.type;
@@ -454,19 +573,12 @@
                             }
                         });
                     });
-
-                    botMessageDiv.appendChild(feedbackButtons);
-                    chatContainer.appendChild(botMessageDiv);
-                } catch (error) {
-                    console.error('Error sending message:', error);
-                    const errorDiv = document.createElement('div');
-                    errorDiv.className = 'message bot-message';
-                    errorDiv.textContent = 'Sorry, there was an error processing your message. Please try again.';
-                    chatContainer.appendChild(errorDiv);
-                } finally {
-                    loadingIndicator.style.display = 'none';
-                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                } else {
+                    messageDiv.innerHTML = `<div class="message-content">${content}</div>`;
                 }
+
+                document.getElementById('chat-container').appendChild(messageDiv);
+                document.getElementById('chat-container').scrollTop = document.getElementById('chat-container').scrollHeight;
             }
 
             // Utility function for debouncing
@@ -646,6 +758,8 @@
 
             function createTokenElement(tokenId, data) {
                 const tokenDiv = document.createElement('div');
+                tokenDiv.className = 'token-card';  // Add token-card class
+                tokenDiv.dataset.tokenId = tokenId;  // Add token ID as data attribute
                 tokenDiv.style.marginBottom = '15px';
                 tokenDiv.style.position = 'relative';
                 
@@ -1101,6 +1215,186 @@
                 }
             `;
             document.head.appendChild(style);
+
+            // Chart instances
+            let portfolioPieChart = null;
+            let portfolioBarChart = null;
+
+            // Function to update charts
+            function updateCharts() {
+                const chartData = [];
+                const tokenLabels = [];
+                const tokenValues = [];
+                const tokenChanges = [];
+
+                // Collect data for charts
+                trackedTokens.forEach(tokenId => {
+                    const cachedTokenData = tokenDataCache.getData(tokenId);
+                    if (cachedTokenData && cachedTokenData.usd) {
+                        const amount = parseFloat(localStorage.getItem(`token_amount_${tokenId}`) || '0');
+                        if (amount > 0) {
+                            const value = cachedTokenData.usd * amount;
+                            const tokenOption = Array.from(tokenDropdown.options).find(opt => opt.value === tokenId);
+                            const tokenName = tokenOption ? tokenOption.text : tokenId.charAt(0).toUpperCase() + tokenId.slice(1);
+                            
+                            chartData.push({
+                                name: tokenName,
+                                value: value,
+                                change: cachedTokenData.usd_24h_change
+                            });
+                        }
+                    }
+                });
+
+                // Sort by value
+                chartData.sort((a, b) => b.value - a.value);
+
+                // Prepare data arrays
+                chartData.forEach(data => {
+                    tokenLabels.push(data.name);
+                    tokenValues.push(data.value);
+                    tokenChanges.push(data.change);
+                });
+
+                // Update Pie Chart
+                if (portfolioPieChart) {
+                    portfolioPieChart.destroy();
+                }
+
+                portfolioPieChart = new Chart(document.getElementById('portfolioPieChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: tokenLabels,
+                        datasets: [{
+                            data: tokenValues,
+                            backgroundColor: [
+                                '#6c5ce7', '#00cec9', '#00b894', '#fdcb6e', '#e17055',
+                                '#0984e3', '#6c5ce7', '#00cec9', '#00b894', '#fdcb6e'
+                            ],
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: 'var(--text-primary)'
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const percentage = ((value / tokenValues.reduce((a, b) => a + b, 0)) * 100).toFixed(1);
+                                        return `${context.label}: $${value.toLocaleString()} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Update Bar Chart
+                if (portfolioBarChart) {
+                    portfolioBarChart.destroy();
+                }
+
+                portfolioBarChart = new Chart(document.getElementById('portfolioBarChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: tokenLabels,
+                        datasets: [
+                            {
+                                label: 'Value (USD)',
+                                data: tokenValues,
+                                backgroundColor: 'rgba(108, 92, 231, 0.8)',
+                                borderColor: 'rgba(108, 92, 231, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: '24h Change (%)',
+                                data: tokenChanges,
+                                type: 'line',
+                                yAxisID: 'y1',
+                                borderColor: 'rgba(0, 206, 201, 1)',
+                                backgroundColor: 'rgba(0, 206, 201, 0.2)',
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Value (USD)',
+                                    color: 'var(--text-primary)'
+                                },
+                                ticks: {
+                                    color: 'var(--text-primary)'
+                                }
+                            },
+                            y1: {
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: '24h Change (%)',
+                                    color: 'var(--text-primary)'
+                                },
+                                ticks: {
+                                    color: 'var(--text-primary)'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: 'var(--text-primary)'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    color: 'var(--text-primary)'
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.dataset.label === 'Value (USD)') {
+                                            return `Value: $${context.raw.toLocaleString()}`;
+                                        } else {
+                                            return `24h Change: ${context.raw.toFixed(2)}%`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Add chart refresh button handler
+            document.getElementById('refresh-charts').addEventListener('click', () => {
+                updateCharts();
+            });
+
+            // Update charts when portfolio changes
+            const originalUpdatePortfolio = updatePortfolio;
+            updatePortfolio = function() {
+                originalUpdatePortfolio();
+                updateCharts();
+            };
+
+            // Initial chart update
+            updateCharts();
         }); 
     </script>
 </body>

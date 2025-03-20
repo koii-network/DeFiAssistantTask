@@ -62,6 +62,175 @@ async function getTopDefiProtocols() {
   }
 }
 
+// Function to get user's portfolio data
+async function getUserPortfolio() {
+  try {
+    // Get tracked tokens from localStorage
+    const trackedTokens = JSON.parse(localStorage.getItem('trackedTokens') || '[]');
+    if (trackedTokens.length === 0) return null;
+
+    // Get token amounts from localStorage
+    const tokenAmounts = {};
+    trackedTokens.forEach(tokenId => {
+      const amount = localStorage.getItem(`token_amount_${tokenId}`);
+      if (amount) tokenAmounts[tokenId] = parseFloat(amount);
+    });
+
+    // Get current prices
+    const tokenList = trackedTokens.join(',');
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${tokenList}&vs_currencies=usd&include_24hr_change=true`
+    );
+    const prices = await response.json();
+
+    // Calculate portfolio metrics
+    let totalValue = 0;
+    let totalChange = 0;
+    let assetCount = 0;
+    const assets = [];
+
+    trackedTokens.forEach(tokenId => {
+      const tokenData = prices[tokenId];
+      if (tokenData && tokenData.usd) {
+        const amount = tokenAmounts[tokenId] || 0;
+        if (amount > 0) {
+          const value = tokenData.usd * amount;
+          totalValue += value;
+          totalChange += tokenData.usd_24h_change;
+          assetCount++;
+          assets.push({
+            id: tokenId,
+            amount: amount,
+            price: tokenData.usd,
+            value: value,
+            change_24h: tokenData.usd_24h_change
+          });
+        }
+      }
+    });
+
+    const avgChange = assetCount > 0 ? totalChange / assetCount : 0;
+
+    return {
+      totalValue,
+      totalChange: avgChange,
+      assetCount,
+      totalTokens: Object.values(tokenAmounts).reduce((a, b) => a + b, 0),
+      assets
+    };
+  } catch (error) {
+    console.error('Error getting portfolio data:', error);
+    return null;
+  }
+}
+
+// Function to fetch and analyze Google News results
+async function analyzeTokenNews(tokenQuery) {
+  try {
+    // Fetch news from Google News API
+    const response = await fetch(
+      `https://newsapi.org/v2/everything?` +
+      `q=${encodeURIComponent(tokenQuery + ' cryptocurrency')}&` +
+      `language=en&` +
+      `sortBy=publishedAt&` +
+      `pageSize=10&` +
+      `apiKey=${process.env.NEWS_API_KEY}`
+    );
+    
+    const data = await response.json();
+    
+    if (!data.articles || data.articles.length === 0) {
+      return null;
+    }
+
+    // Extract relevant information from articles
+    const articles = data.articles.map(article => ({
+      title: article.title,
+      description: article.description,
+      source: article.source.name,
+      publishedAt: article.publishedAt,
+      sentiment: analyzeSentiment(article.title + ' ' + article.description)
+    }));
+
+    // Calculate overall sentiment
+    const overallSentiment = calculateOverallSentiment(articles);
+    
+    // Generate analysis summary
+    const analysis = {
+      token: tokenQuery,
+      sentiment: overallSentiment,
+      articleCount: articles.length,
+      articles: articles,
+      summary: generateSentimentSummary(overallSentiment, articles)
+    };
+
+    return analysis;
+  } catch (error) {
+    console.error('Error analyzing news:', error);
+    return null;
+  }
+}
+
+// Function to analyze sentiment of text
+function analyzeSentiment(text) {
+  // Simple sentiment analysis based on keyword matching
+  const positiveWords = ['surge', 'rise', 'gain', 'up', 'high', 'bullish', 'growth', 'positive', 'increase', 'rally'];
+  const negativeWords = ['drop', 'fall', 'down', 'low', 'bearish', 'decline', 'negative', 'decrease', 'crash', 'risk'];
+  
+  const words = text.toLowerCase().split(/\s+/);
+  let score = 0;
+  
+  words.forEach(word => {
+    if (positiveWords.includes(word)) score++;
+    if (negativeWords.includes(word)) score--;
+  });
+  
+  return {
+    score,
+    sentiment: score > 0 ? 'positive' : score < 0 ? 'negative' : 'neutral'
+  };
+}
+
+// Function to calculate overall sentiment from multiple articles
+function calculateOverallSentiment(articles) {
+  const totalScore = articles.reduce((sum, article) => sum + article.sentiment.score, 0);
+  const averageScore = totalScore / articles.length;
+  
+  return {
+    score: averageScore,
+    sentiment: averageScore > 0.2 ? 'positive' : averageScore < -0.2 ? 'negative' : 'neutral',
+    strength: Math.abs(averageScore)
+  };
+}
+
+// Function to generate a summary of the sentiment analysis
+function generateSentimentSummary(overallSentiment, articles) {
+  const sentimentStrength = overallSentiment.strength;
+  const sentiment = overallSentiment.sentiment;
+  
+  let summary = `Based on recent news analysis for ${articles[0].token}:\n`;
+  
+  if (sentimentStrength < 0.3) {
+    summary += "The market sentiment is mixed with no clear direction.\n";
+  } else if (sentiment === 'positive') {
+    summary += `The market sentiment is moderately to strongly positive (${(sentimentStrength * 100).toFixed(1)}% confidence).\n`;
+  } else if (sentiment === 'negative') {
+    summary += `The market sentiment is moderately to strongly negative (${(sentimentStrength * 100).toFixed(1)}% confidence).\n`;
+  }
+  
+  // Add key points from articles
+  const keyPoints = articles
+    .filter(article => Math.abs(article.sentiment.score) > 1)
+    .map(article => `- ${article.title}`)
+    .slice(0, 3);
+  
+  if (keyPoints.length > 0) {
+    summary += "\nKey recent developments:\n" + keyPoints.join('\n');
+  }
+  
+  return summary;
+}
+
 export async function routes() {
   // Serve static files
   app.use(express.static(path.join(__dirname, 'app')));
@@ -96,8 +265,31 @@ export async function routes() {
   // Handle chat API endpoint
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message } = req.body;
+      const { message, portfolio } = req.body;
       console.log("MESSAGE RECEIVED:", message);
+      console.log("PORTFOLIO RECEIVED:", portfolio);
+      
+      // Create portfolio context from received portfolio data
+      let portfolioContext = "";
+      if (portfolio && portfolio.assets && portfolio.assets.length > 0) {
+        portfolioContext = `User's Portfolio Information:
+- Total Value: $${portfolio.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+- 24h Change: ${portfolio.totalChange.toFixed(2)}%
+- Number of Assets: ${portfolio.assetCount}
+- Total Tokens: ${portfolio.totalTokens.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+
+Assets:
+${portfolio.assets.map(asset => `- ${asset.id}: ${asset.amount} tokens ($${asset.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) - 24h: ${asset.change_24h.toFixed(2)}%`).join('\n')}`;
+      }
+
+      // Check for trading advice queries
+      const tradingAdviceMatch = message.toLowerCase().match(/(?:should|would|do you think) (?:i|you) (?:buy|sell|invest in|trade) (?:more|some|any) ([a-zA-Z\s]+)/);
+      let newsAnalysis = null;
+
+      if (tradingAdviceMatch) {
+        const tokenQuery = tradingAdviceMatch[1].trim();
+        newsAnalysis = await analyzeTokenNews(tokenQuery);
+      }
 
       // Check if message contains price query
       const priceMatch = message.toLowerCase().match(/price (?:of |for )?([a-zA-Z\s]+)/);
@@ -111,18 +303,41 @@ export async function routes() {
         }
       }
 
-      // Add market data to context if available
+      // Add market data, portfolio, and news analysis to context if available
       if (marketData) {
         aiContextWindow.push({
           role: "system",
           content: `Current market data: ${JSON.stringify(marketData)}`
         });
+        console.log("\n=== Added Market Data to Context ===");
+        console.log(JSON.stringify(marketData, null, 2));
+      }
+
+      if (portfolioContext) {
+        aiContextWindow.push({
+          role: "system",
+          content: portfolioContext
+        });
+        console.log("\n=== Added Portfolio Context ===");
+        console.log(portfolioContext);
+      }
+
+      if (newsAnalysis) {
+        aiContextWindow.push({
+          role: "system",
+          content: `Recent market sentiment analysis:\n${newsAnalysis.summary}`
+        });
+        console.log("\n=== Added News Analysis ===");
+        console.log(newsAnalysis.summary);
       }
 
       aiContextWindow.push({
         role: "user",
         content: message
       });
+
+      console.log("\n=== Full AI Context Window ===");
+      console.log(JSON.stringify(aiContextWindow, null, 2));
 
       // use openai to answer the question
       const response = await openai.chat.completions.create({
@@ -135,10 +350,12 @@ export async function routes() {
       const responseText = response.choices[0].message.content;
       const messageId = Date.now().toString();
 
-      // If we had market data, remove it from context to keep it clean
-      if (marketData) {
+      // Clean up context
+      if (marketData || portfolioContext || newsAnalysis) {
         aiContextWindow.pop(); // Remove user message
-        aiContextWindow.pop(); // Remove market data
+        if (marketData) aiContextWindow.pop(); // Remove market data
+        if (portfolioContext) aiContextWindow.pop(); // Remove portfolio context
+        if (newsAnalysis) aiContextWindow.pop(); // Remove news analysis
         aiContextWindow.push({
           role: "user",
           content: message
@@ -150,8 +367,10 @@ export async function routes() {
         content: responseText
       });
 
-      console.log("AI CONTEXT WINDOW:", aiContextWindow);
-      console.log("Response:", responseText, "messageId:", messageId);
+      console.log("\n=== AI Response ===");
+      console.log(responseText);
+      console.log("\n=== Message ID ===");
+      console.log(messageId);
       
       res.json({ response: responseText, messageId: messageId });
 
