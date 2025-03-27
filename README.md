@@ -1,5 +1,7 @@
 # Koii DeFi AI Assistant
 
+Alpha 0.2.0 Task: Foc9VM7n2EcFje4xMSmuiMyLJkRj5gnAaBkcmkPftxRa
+
 Here is a flowchart of how this task should work:
 ![Flowchart:](Screenshot%202025-01-30%20121842.png)
 

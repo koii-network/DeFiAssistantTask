@@ -5,7 +5,7 @@
 
 ## Task Name ##
 # Maximum 24 characters.
-task_name: "DeFi Dashboard Alpha 0.2.0"
+task_name: "DeFiDashboardAlpha 0.2.0"
 
 ## Task Author ##
 author: "Avi from Koii"
@@ -17,15 +17,15 @@ markdownDescriptionPath: "./TaskDescription.md"
 
 ## Task Description ##
 # Ignored if you specify a markdown file.
-description: "Task description."
+description: "Alpha Version of the DeFi Dashboard"
 
 ## Repository URL ##
 # Must be public for whitelisted tasks.
-repositoryUrl: "https://github.com/koii-network/task-template"
+repositoryUrl: "https://github.com/koii-network/DeFiAssistantTask"
 
 ## Image URL ##
 # 230x86 pixels.
-imageUrl: "imageUrl"
+imageUrl: "https://raw.githubusercontent.com/koii-network/DeFiAssistantTask/refs/heads/main/src/assets/thumbnail.png"
 
 ## Info URL ##
 infoUrl: "infoUrl"
@@ -60,7 +60,7 @@ submission_window: 600
 minimum_stake_amount: 1.9
 
 # Task Bounty Type: (Required | KOII or KPL) 
-task_type: 'KPL'
+task_type: 'KOII'
 
 # Token Mint Address: (ONLY task_type == KPL) Fire Token as an example here. 
 token_type: "4qayyw53kWz6GzypcejjT1cvwMXS1qYLSMQRE8se3gTv"
@@ -104,7 +104,7 @@ requirementsTags:
     description: '[News API Key Link](https://newsapi.org/)]'
 
 # Tags: You can select the tags here via https://www.koii.network/docs/develop/command-line-tool/create-task-cli/create-task#tags
-tags: ["AI", "ML"] 
+tags: ["TEST", "Defi Dashboard", "Alpha"] 
 # Environment: (Required | TEST or PRODUCTION) Production mode will expose your task to all the task runners. 
 environment: "TEST"
 
