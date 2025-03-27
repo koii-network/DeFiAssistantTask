@@ -5,10 +5,10 @@
 
 ## Task Name ##
 # Maximum 24 characters.
-task_name: "Task Name"
+task_name: "DeFi Dashboard Alpha 0.2.0"
 
 ## Task Author ##
-author: "Koii"
+author: "Avi from Koii"
 
 # Task Description Markdown ##
 # If you specify a markdown file, the description field will be ignored.
@@ -97,8 +97,11 @@ requirementsTags:
   - type: STORAGE
     value: "5 GB"
   - type: TASK_VARIABLE
-    value: 'EXAMPLE_VARIABLE'
-    description: 'EXAMPLE_VARIABLE_DESCRIPTION'
+    value: 'OPENAI_API_KEY'
+    description: '[OpenAI API Key Link](https://platform.openai.com/api-keys)'
+  - type: TASK_VARIABLE
+    value: 'NEWS_API_KEY'
+    description: '[News API Key Link](https://newsapi.org/)]'
 
 # Tags: You can select the tags here via https://www.koii.network/docs/develop/command-line-tool/create-task-cli/create-task#tags
 tags: ["AI", "ML"] 
